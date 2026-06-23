@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SLIPMAT STUDIO — zoetrope designs for vinyl</title>
+<style>
+  :root{
+    --bg:#fafafa;
+    --panel:#ffffff;
+    --line:#ececec;
+    --line2:#e2e2e2;
+    --ink:#101010;
+    --ink-soft:#6b6b6b;
+    --ink-faint:#9a9a9a;
+    --accent:#101010;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  /* ---------- top bar ---------- */
+  header{
+    position:sticky;top:0;z-index:30;
+    background:rgba(255,255,255,.82);
+    backdrop-filter:saturate(180%) blur(12px);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .bar{
+    max-width:1320px;margin:0 auto;padding:14px 22px;
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  }
+  .brand{display:flex;flex-direction:column;line-height:1.1;margin-right:6px;cursor:default;user-select:none}
+  .brand h1{
+    font-size:16px;font-weight:700;letter-spacing:.18em;margin:0;
+    display:flex;align-items:center;gap:9px;
+  }
+  .brand .dot{
+    width:13px;height:13px;border-radius:50%;
+    border:2px solid var(--ink);position:relative;display:inline-block;
+  }
+  .brand .dot::after{content:"";position:absolute;inset:3.5px;border-radius:50%;background:var(--ink)}
+  .brand small{font-size:10.5px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase;margin-top:3px}
+  .spacer{flex:1 1 auto}
+
+  .ctrl{display:flex;align-items:center;gap:7px}
+  .ctrl label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  select,.btn{
+    font-family:var(--font);font-size:12.5px;color:var(--ink);
+    background:#fff;border:1px solid var(--line2);border-radius:9px;
+    padding:8px 11px;cursor:pointer;transition:.15s;
+    appearance:none;-webkit-appearance:none;
+  }
+  select{padding-right:26px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M1 3l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.4'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
+  select:hover,.btn:hover{border-color:#bdbdbd}
+  .btn{display:inline-flex;align-items:center;gap:7px;font-weight:500}
+  .btn.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.solid:hover{background:#2a2a2a}
+  .btn svg{width:14px;height:14px}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);cursor:pointer;user-select:none}
+  .switch{width:34px;height:19px;border-radius:20px;background:#dcdcdc;position:relative;transition:.18s;flex:none}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:.18s}
+  .toggle.on .switch{background:var(--ink)}
+  .toggle.on .switch::after{transform:translateX(15px)}
+
+  /* ---------- grid ---------- */
+  main{max-width:1320px;margin:0 auto;padding:26px 22px 70px}
+  .hint{font-size:12px;color:var(--ink-faint);margin:0 2px 18px;letter-spacing:.02em}
+  .hint b{color:var(--ink-soft);font-weight:600}
+  .grid{
+    display:grid;gap:18px;
+    grid-template-columns:repeat(auto-fill,minmax(248px,1fr));
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:11px;
+    transition:border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .card.active{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink), var(--shadow)}
+  .disc-wrap{position:relative;cursor:pointer}
+  .disc-wrap canvas{display:block;width:100%;height:auto;border-radius:50%}
+  .idx{
+    position:absolute;top:8px;left:8px;font-size:10px;letter-spacing:.1em;
+    color:var(--ink-faint);background:rgba(255,255,255,.75);border-radius:20px;
+    padding:2px 8px;backdrop-filter:blur(4px);
+  }
+  .card-bar{display:flex;align-items:center;gap:7px}
+  .card-bar select{flex:1;padding:7px 24px 7px 9px;font-size:11.5px;min-width:0}
+  .iconbtn{
+    width:32px;height:32px;flex:none;display:inline-flex;align-items:center;justify-content:center;
+    border:1px solid var(--line2);border-radius:9px;background:#fff;cursor:pointer;color:var(--ink);transition:.15s;padding:0;
+  }
+  .iconbtn:hover{border-color:#bdbdbd;background:#fafafa}
+  .iconbtn svg{width:15px;height:15px}
+  .iconbtn.fav.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .sliders{display:flex;flex-direction:column;gap:7px}
+  .slider-row{display:grid;grid-template-columns:42px 1fr 30px;align-items:center;gap:9px}
+  .slider-row span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+  .slider-row .val{font-size:10px;color:var(--ink-faint);text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:#e3e3e3;border-radius:3px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--ink);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border:2px solid #fff;border-radius:50%;background:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;z-index:60;background:rgba(20,20,20,.4);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:60px 20px}
+  .overlay.open{display:flex}
+  .modal{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+  .modal-head{position:sticky;top:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--line)}
+  .modal-head h2{margin:0;font-size:14px;letter-spacing:.14em;text-transform:uppercase}
+  .modal-body{padding:18px 24px 28px}
+  .modal-body h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:22px 0 11px}
+  .modal-body h3:first-child{margin-top:4px}
+  .save-list{display:flex;flex-direction:column;gap:8px}
+  .save-item{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .save-item canvas{width:46px;height:46px;border-radius:50%;flex:none;background:#f2f2f2}
+  .save-item .meta{flex:1;min-width:0}
+  .save-item .meta b{font-size:13px;display:block;font-weight:600}
+  .save-item .meta small{font-size:11px;color:var(--ink-faint)}
+  .save-item .acts{display:flex;gap:6px}
+  .empty{font-size:12.5px;color:var(--ink-faint);padding:6px 2px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:30px;padding:6px 8px 6px 6px;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--ink)}
+  .chip canvas{width:32px;height:32px;border-radius:50%;background:#f2f2f2}
+  .chip span{font-size:12px;padding-right:6px}
+  .chip .x{color:var(--ink-faint);font-size:14px;padding:0 4px;border-radius:50%}
+  .chip .x:hover{color:#d23}
+  .row-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .tiny{font-size:11px;color:var(--ink-faint);line-height:1.5}
+  kbd{font-family:var(--font);font-size:10px;background:#f0f0f0;border:1px solid #ddd;border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:#d8d8d8;border-radius:8px;border:3px solid #fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <h1><span class="dot"></span>SLIPMAT&nbsp;STUDIO</h1>
+      <small>Zoetrope designs for vinyl</small>
+    </div>
+    <div class="spacer"></div>
+
+    <div class="ctrl">
+      <label>Theme</label>
+      <select id="theme"></select>
+    </div>
+    <div class="ctrl">
+      <label>Palette</label>
+      <select id="palette"></select>
+    </div>
+    <div class="toggle" id="strobeToggle" title="Quantises the spin into frames — the true phenakistoscope effect (no flashing).">
+      <span class="switch"></span> Strobe
+    </div>
+    <button class="btn" id="pauseAll" title="Freeze every disc (Space)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      <span>Pause all</span>
+    </button>
+    <button class="btn" id="randomise">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="16" cy="16" r="1.4" fill="currentColor"/><circle cx="16" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="16" r="1.4" fill="currentColor"/></svg>
+      <span>Randomise</span>
+    </button>
+    <button class="btn" id="saveBoard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7"/><rect x="8" y="13" width="8" height="6"/></svg>
+      <span>Save board</span>
+    </button>
+    <button class="btn solid" id="openLib">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span>Library</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <p class="hint">
+    Every design is driven purely by rotation, so <b>pausing any disc gives you a still, printable frame.</b>
+    Tune <b>Scale</b>, <b>Place</b>, <b>Spin</b> &amp; <b>Line</b> per mat · click a disc to select it · <kbd>Space</kbd> pauses all.
+  </p>
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- Library modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Library</h2>
+      <button class="iconbtn" id="closeLib" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <h3>Saved boards</h3>
+      <div class="save-list" id="boardList"></div>
+      <h3>Favourite designs <span class="tiny" style="text-transform:none;letter-spacing:0">— click to apply to the selected disc</span></h3>
+      <div class="chips" id="favList"></div>
+      <h3>Export artwork</h3>
+      <div class="row-btns" style="align-items:center">
+        <label class="tiny">Format
+          <select id="expFormat" style="margin-left:6px"><option value="png">PNG</option><option value="svg">SVG · vector</option></select>
+        </label>
+        <label class="tiny">Size
+          <select id="expSize" style="margin-left:6px"><option value="1000">1000px</option><option value="2000" selected>2000px</option><option value="4000">4000px · print</option></select>
+        </label>
+        <button class="btn" id="dlAllBtn">Download all 12</button>
+      </div>
+      <p class="tiny">The per-disc ↓ button uses these settings. <b>Black &amp; White</b> PNG exports with transparency (black shapes only). Pause a disc first to capture an exact frame.</p>
+
+      <h3>Backup</h3>
+      <p class="tiny">Boards &amp; favourites are stored in this browser. Export a file to keep them safe or move them to another machine.</p>
+      <div class="row-btns">
+        <button class="btn" id="exportBtn">Export .json</button>
+        <button class="btn" id="importBtn">Import .json</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const TAU = Math.PI * 2;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* =========================================================
+   PALETTES.  UI stays clean white; these recolour the discs.
+   bg=mat, ink=primary, accent=2nd tone, optional colors[]=multi-hue
+   ramp (designs cycle through it), optional label=centre hub colour.
+   ========================================================= */
+const PALETTES = [
+  {id:"mono",   name:"Black & White", bg:"#ffffff", ink:"#0d0d0d", accent:"#0d0d0d", groove:"rgba(0,0,0,.05)",     edge:"#d6d6d6", hi:.34},
+  {id:"paper",  name:"Ink on Paper",  bg:"#f4f0e7", ink:"#16130e", accent:"#a23b2b", groove:"rgba(0,0,0,.05)",     edge:"#ddd6c7", hi:.30},
+  {id:"vinyl",  name:"Classic Vinyl", bg:"#161616", ink:"#f4f4f4", accent:"#f4f4f4", groove:"rgba(255,255,255,.06)", edge:"#000000", hi:.13},
+  {id:"sepia",  name:"Sepia",         bg:"#e9d8bd", ink:"#3a2a16", accent:"#92602e", groove:"rgba(0,0,0,.06)",     edge:"#cdb38b", hi:.26},
+
+  /* ---- multi-colour, drawn from the reference art ---- */
+  {id:"electric", name:"Electric Blue", bg:"#1a39c9", ink:"#9fe6ff", accent:"#ff3ea5", label:"#ff3ea5",
+   colors:["#9fe6ff","#ffffff","#ff3ea5","#39d0c8"], groove:"rgba(255,255,255,.08)", edge:"#0c1f86", hi:.16},
+  {id:"soul",   name:"70s Soul",      bg:"#120c06", ink:"#f3e3c6", accent:"#e6531d", label:"#e9c46a",
+   colors:["#e6531d","#f0a020","#f4d35e","#2a9d8f","#e07a5f","#9b2226"], groove:"rgba(255,255,255,.05)", edge:"#000000", hi:.12},
+  {id:"pop",    name:"60s Pop",       bg:"#f6e7c2", ink:"#1b1b1b", accent:"#e2553b", label:"#e2553b",
+   colors:["#1b1b1b","#e2553b","#2f6f8f","#e0a72e"], groove:"rgba(0,0,0,.05)", edge:"#e4d4a9", hi:.27},
+  {id:"prism",  name:"Prism",         bg:"#0c0c0c", ink:"#ffffff", accent:"#ff2d55", label:"#ffffff",
+   colors:["#ff2d55","#ff8a00","#ffd400","#33d17a","#00b3ff","#5b5bff","#c850ff"], groove:"rgba(255,255,255,.05)", edge:"#000000", hi:.12},
+  {id:"acid",   name:"Acid House",    bg:"#0a0a0a", ink:"#d8ff3e", accent:"#ff36c4", label:"#d8ff3e",
+   colors:["#d8ff3e","#ff36c4","#36e0ff","#ffffff"], groove:"rgba(255,255,255,.05)", edge:"#000000", hi:.10},
+  {id:"disco",  name:"Disco",         bg:"#0e0814", ink:"#f6d36b", accent:"#ff4fa3", label:"#cdd2da",
+   colors:["#f6d36b","#ff4fa3","#b58cff","#7fe0ff","#ffffff"], groove:"rgba(255,255,255,.05)", edge:"#000000", hi:.14},
+  {id:"neon",   name:"Neon Night",    bg:"#0b0b12", ink:"#ebebff", accent:"#ff2f88", label:"#ff2f88",
+   colors:["#ff2f88","#2ff0ff","#ebebff","#a64bff"], groove:"rgba(255,255,255,.06)", edge:"#000000", hi:.12},
+  {id:"blue",   name:"Blueprint",     bg:"#0f3050", ink:"#e7eff7", accent:"#74b1e6", groove:"rgba(255,255,255,.07)", edge:"#06203a", hi:.15},
+  {id:"mint",   name:"Mint",          bg:"#e7f2ed", ink:"#102a20", accent:"#2f9b73", groove:"rgba(0,0,0,.05)",     edge:"#cfe3da", hi:.27},
+];
+const paletteById = id => PALETTES.find(p=>p.id===id) || PALETTES[0];
+
+/* =========================================================
+   THEMES / genres
+   ========================================================= */
+const THEMES = [
+  {id:"all",         name:"All themes"},
+  {id:"humans",      name:"Humans"},
+  {id:"creatures",   name:"Creatures"},
+  {id:"geometry",    name:"Geometry · 60s"},
+  {id:"patterns",    name:"Patterns"},
+  {id:"organic",     name:"Organic · Liquid"},
+  {id:"psychedelic", name:"Psychedelic · Soul"},
+  {id:"house",       name:"House · Acid"},
+];
+
+/* =========================================================
+   DRAWING HELPERS
+   ========================================================= */
+function seg2(ctx, x,y, a1,l1, a2,l2){          // two-segment limb (absolute angles)
+  const x1=x+Math.cos(a1)*l1, y1=y+Math.sin(a1)*l1;
+  const x2=x1+Math.cos(a2)*l2, y2=y1+Math.sin(a2)*l2;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+}
+function isTwoTone(P){ return P.accent.toLowerCase() !== P.ink.toLowerCase(); }
+function isMulti(P){ return !!(P.colors && P.colors.length); }
+// colour for the i-th element: cycles the palette ramp, else 2-tone, else mono
+function tone(P, i){
+  if(isMulti(P)){ const n=P.colors.length; return P.colors[((i%n)+n)%n]; }
+  return (i%2 && isTwoTone(P)) ? P.accent : P.ink;
+}
+const wOf = P => P.weight || 1;
+// stable per-index pseudo-random (deterministic → safe to call every frame, pause stays a clean still)
+function hash(n){ const x=Math.sin(n*12.9898+78.233)*43758.5453; return x-Math.floor(x); }
+
+// A reusable side-profile figure. Origin = hip, faces +x, motion from `phase`.
+function drawFigure(ctx, s, phase, P, mode){
+  const t = phase*TAU, run = mode==="run", dance = mode==="dance";
+  ctx.save();
+  ctx.strokeStyle = P.ink; ctx.fillStyle = P.ink;
+  ctx.lineCap="round"; ctx.lineJoin="round";
+  ctx.lineWidth = s*0.26*wOf(P);                       // Line slider scales the limbs
+
+  const lean = run ? s*0.26 : 0;
+  const sx = lean, sy = -s*1.0;                        // shoulder
+  const Lt=s*0.54, Ls=s*0.5, Lua=s*0.4, Lfa=s*0.34;
+  const legAmp = run?0.55 : dance?0.16 : 0.4;
+  const armAmp = run?0.8 : dance?0.55 : 0.48;
+
+  for(let side=0; side<2; side++){                     // legs
+    const ph = t + side*Math.PI;
+    const thigh = Math.PI/2 + Math.sin(ph)*legAmp + lean*0.6;
+    const bend  = (run?1.0:0.6) * (0.55 + 0.45*Math.max(0,Math.cos(ph)));
+    seg2(ctx, 0,0, thigh,Lt, thigh+bend,Ls);
+  }
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(sx,sy); ctx.stroke();   // torso
+  for(let side=0; side<2; side++){                     // arms
+    const ph = t + side*Math.PI;
+    let up, fore;
+    if(dance){ up = -Math.PI/2 + (side?0.5:-0.5) + Math.sin(t)*0.3; fore = up + (side?-0.8:0.8); }
+    else { up = Math.PI/2 + Math.sin(ph+Math.PI)*armAmp - lean*0.5; fore = up - 0.5; }
+    seg2(ctx, sx,sy, up,Lua, fore,Lfa);
+  }
+  const hx = sx + (run?s*0.12:0), hy = sy - s*0.36;    // head
+  ctx.beginPath(); ctx.arc(hx,hy, s*0.3, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+// ring of figures (humans stand upright on the rim)
+function figureRing(ctx,R,P,mode,K){
+  const ringR = R*(0.42 + 0.5*P.place);
+  const figS  = R*0.17*P.scale;
+  for(let i=0;i<K;i++){
+    ctx.save();
+    ctx.rotate(i/K*TAU); ctx.translate(0,-ringR); ctx.rotate(Math.PI);
+    drawFigure(ctx, figS, i/K, P, mode);
+    ctx.restore();
+  }
+}
+// ring of creatures travelling tangentially (facing direction of motion, +x)
+function critterRing(ctx,R,P,K,sizeF,drawFn){
+  const ringR = R*(0.42 + 0.5*P.place);
+  const s = R*sizeF*P.scale;
+  for(let i=0;i<K;i++){
+    ctx.save();
+    ctx.rotate(i/K*TAU); ctx.translate(0,-ringR);
+    drawFn(ctx, s, i/K, P, i);
+    ctx.restore();
+  }
+}
+function drawBird(ctx,s,phase,P,idx){
+  const t=phase*TAU, bend=0.5+0.5*Math.sin(t);
+  const col = isMulti(P)?tone(P,idx):P.ink;
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineCap="round"; ctx.lineJoin="round";
+  ctx.lineWidth=s*0.16*wOf(P);
+  const tipY = -s*0.55*bend + s*0.25*(1-bend);
+  ctx.beginPath();
+  ctx.moveTo(-s*0.95, tipY);
+  ctx.quadraticCurveTo(-s*0.45, -s*0.18*bend, 0, 0);
+  ctx.quadraticCurveTo( s*0.45, -s*0.18*bend, s*0.95, tipY);
+  ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, s*0.05, s*0.12, s*0.26, 0,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function drawFish(ctx,s,phase,P,idx){
+  const t=phase*TAU, wag=Math.sin(t)*0.55;
+  const col = isMulti(P)?tone(P,idx):P.ink;
+  ctx.save();
+  ctx.fillStyle=col; ctx.strokeStyle=col;
+  ctx.beginPath(); ctx.ellipse(0,0, s*0.5, s*0.26, 0,0,TAU); ctx.fill();
+  ctx.save(); ctx.translate(-s*0.46,0); ctx.rotate(wag);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-s*0.4,-s*0.26); ctx.lineTo(-s*0.4,s*0.26); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle=P.bg; ctx.beginPath(); ctx.arc(s*0.28,0,s*0.07,0,TAU); ctx.fill();   // eye
+  ctx.restore();
+}
+
+/* =========================================================
+   THE DESIGNS.  Each: draw(ctx, R, P).  ctx is centred &
+   already rotated. frames = natural symmetry (drives strobe).
+   P carries {bg,ink,accent,colors,scale,place,weight}.
+   ========================================================= */
+const ANIMS = [
+  /* ---- HUMANS ---- */
+  { id:"walk", name:"Walk Cycle", theme:"humans", frames:12,
+    draw(ctx,R,P){ figureRing(ctx,R,P,"walk",12); } },
+  { id:"run", name:"Sprint", theme:"humans", frames:12,
+    draw(ctx,R,P){ figureRing(ctx,R,P,"run",12); } },
+  { id:"dance", name:"Dancers", theme:"humans", frames:8,
+    draw(ctx,R,P){ figureRing(ctx,R,P,"dance",8); } },
+
+  /* ---- CREATURES ---- */
+  { id:"bird", name:"Flying Birds", theme:"creatures", frames:10,
+    draw(ctx,R,P){ critterRing(ctx,R,P,10,0.17,drawBird); } },
+  { id:"fish", name:"Schooling Fish", theme:"creatures", frames:9,
+    draw(ctx,R,P){ critterRing(ctx,R,P,9,0.16,drawFish); } },
+  { id:"tentacles", name:"Tentacles", theme:"creatures", frames:6,
+    draw(ctx,R,P){
+      const n=Math.round(5+P.place*5), curl=0.8+P.scale*1.4, w=wOf(P);
+      ctx.lineCap="round";
+      for(let i=0;i<n;i++){
+        const base=i/n*TAU; ctx.strokeStyle=tone(P,i);
+        const steps=44;
+        for(let j=0;j<steps;j++){
+          const f=j/steps, f1=(j+1)/steps;
+          const r=R*0.12+f*R*0.82, r1=R*0.12+f1*R*0.82;
+          const a=base+f*curl, a1=base+f1*curl;
+          ctx.lineWidth=(R*0.12*(1-f)+R*0.012)*w;
+          ctx.beginPath(); ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); ctx.lineTo(Math.cos(a1)*r1,Math.sin(a1)*r1); ctx.stroke();
+        }
+      }
+      ctx.fillStyle=tone(P,0); ctx.beginPath(); ctx.arc(0,0,R*0.16,0,TAU); ctx.fill();
+    } },
+
+  /* ---- GEOMETRY · 60s ---- */
+  { id:"spiral", name:"Hypno Spiral", theme:"geometry", frames:36,
+    draw(ctx,R,P){
+      const arms = 1 + Math.round(P.place*2);
+      const turns = 4 + P.scale*6;
+      const spacing = (R*0.9)/turns, eff=spacing/arms;
+      ctx.lineCap="round";
+      ctx.lineWidth = Math.min(eff*0.9, eff*0.55*wOf(P));
+      const steps = Math.ceil(turns*64);
+      for(let a=0;a<arms;a++){
+        ctx.strokeStyle = tone(P, a);
+        ctx.beginPath();
+        for(let i=0;i<=steps;i++){
+          const f=i/steps, ang=f*TAU*turns + a/arms*TAU, r=R*0.06 + f*R*0.9;
+          i?ctx.lineTo(Math.cos(ang)*r,Math.sin(ang)*r):ctx.moveTo(Math.cos(ang)*r,Math.sin(ang)*r);
+        }
+        ctx.stroke();
+      }
+    } },
+
+  { id:"sunburst", name:"Sunburst", theme:"geometry", frames:24,
+    draw(ctx,R,P){
+      const n = Math.round(10 + P.place*40)*2;
+      const inner = R*(0.06 + 0.34*(P.scale-0.4)/1.4);
+      const multi = isMulti(P), two = isTwoTone(P);
+      for(let i=0;i<n;i++){
+        if(multi) ctx.fillStyle=tone(P,i);
+        else if(i%2===0) ctx.fillStyle=P.ink;
+        else if(two) ctx.fillStyle=P.accent;
+        else continue;
+        const a0=i/n*TAU, a1=(i+1)/n*TAU;
+        ctx.beginPath(); ctx.arc(0,0,R*0.98,a0,a1); ctx.arc(0,0,inner,a1,a0,true); ctx.closePath(); ctx.fill();
+      }
+    } },
+
+  { id:"pinwheel", name:"Pinwheel", theme:"geometry", frames:6,
+    draw(ctx,R,P){
+      const n = Math.round(4 + P.place*8);
+      const curve = 0.7 + P.scale*1.3, width=(TAU/n)*0.78, rr=R*0.97, steps=28;
+      for(let i=0;i<n;i++){
+        const base=i/n*TAU; ctx.fillStyle = tone(P,i);
+        ctx.beginPath();
+        for(let j=0;j<=steps;j++){ const f=j/steps, r=rr*f, a=base+f*curve;      ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); }
+        for(let j=steps;j>=0;j--){ const f=j/steps, r=rr*f, a=base+width+f*curve; ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); }
+        ctx.closePath(); ctx.fill();
+      }
+    } },
+
+  { id:"wedges", name:"Mod Wedges", theme:"geometry", frames:16,
+    draw(ctx,R,P){
+      const sectors = Math.round(6 + P.place*14)*2;
+      const rings   = Math.round(3 + P.scale*4);
+      const inner = R*0.1, multi=isMulti(P);
+      for(let ri=0;ri<rings;ri++){
+        const r0 = inner + (R*0.96-inner)*ri/rings;
+        const r1 = inner + (R*0.96-inner)*(ri+1)/rings;
+        for(let si=0;si<sectors;si++){
+          if((ri+si)%2) continue;
+          ctx.fillStyle = multi ? tone(P, ri*sectors+si) : ((isTwoTone(P)&&ri%2)?P.accent:P.ink);
+          const a0=si/sectors*TAU, a1=(si+1)/sectors*TAU;
+          ctx.beginPath(); ctx.arc(0,0,r1,a0,a1); ctx.arc(0,0,r0,a1,a0,true); ctx.closePath(); ctx.fill();
+        }
+      }
+    } },
+
+  { id:"star", name:"Star Drift", theme:"geometry", frames:5,
+    draw(ctx,R,P){
+      const n = Math.round(5 + P.place*7);
+      const layers = Math.round(1 + P.scale*2.4);
+      for(let L=0;L<layers;L++){
+        const scl = 1 - L*0.26; ctx.fillStyle = tone(P, L);
+        const ro=R*0.95*scl, ri=ro*0.46;
+        ctx.beginPath();
+        for(let i=0;i<n*2;i++){
+          const r=i%2?ri:ro, a=i/(n*2)*TAU - Math.PI/2 + L*0.12;
+          i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+        }
+        ctx.closePath(); ctx.fill();
+      }
+    } },
+
+  { id:"spiro", name:"Spirograph", theme:"geometry", frames:36,
+    draw(ctx,R,P){
+      const k = 3 + Math.round(P.place*7);
+      const dd = 0.35 + P.scale*0.6;
+      const a = 1 - 1/k, M = a + dd/k, scl = R*0.92/M;
+      ctx.lineWidth = R*0.012*wOf(P);
+      const curve = (col, ph)=>{
+        ctx.strokeStyle=col; ctx.beginPath();
+        for(let i=0;i<=720;i++){ const th=i/720*TAU;
+          const x=(a*Math.cos(th)+dd*(1/k)*Math.cos((k-1)*th+ph))*scl;
+          const y=(a*Math.sin(th)-dd*(1/k)*Math.sin((k-1)*th+ph))*scl;
+          i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+        }
+        ctx.stroke();
+      };
+      curve(tone(P,0),0);
+      if(isMulti(P)){ curve(tone(P,1),0.45); curve(tone(P,2),0.9); }
+      else if(isTwoTone(P)) curve(P.accent,0.45);
+    } },
+
+  { id:"tunnel", name:"Twisted Tunnel", theme:"geometry", frames:6,
+    draw(ctx,R,P){
+      const sides = 3 + Math.round(P.place*5);
+      const rings = Math.round(6 + P.scale*12);
+      ctx.lineWidth = Math.max(1, R*0.012*wOf(P));
+      for(let ri=1;ri<=rings;ri++){
+        const r=R*0.96*ri/rings, rot=ri*0.4; ctx.strokeStyle=tone(P,ri);
+        ctx.beginPath();
+        for(let j=0;j<=sides;j++){ const a=rot+j/sides*TAU; j?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); }
+        ctx.closePath(); ctx.stroke();
+      }
+    } },
+
+  { id:"cog", name:"Gear", theme:"geometry", frames:12,
+    draw(ctx,R,P){
+      const teeth = Math.round(8 + P.place*16);
+      const rOut=R*0.95, rIn=R*0.78, hole=R*(0.16 + 0.28*P.scale);
+      ctx.fillStyle=P.ink; ctx.beginPath();
+      for(let t=0;t<teeth;t++){
+        const a=t/teeth*TAU, w=TAU/teeth;
+        const pts=[[rIn,a],[rIn,a+w*0.16],[rOut,a+w*0.30],[rOut,a+w*0.52],[rIn,a+w*0.66]];
+        for(const [r,ang] of pts){ const x=Math.cos(ang)*r,y=Math.sin(ang)*r; (t===0&&r===rIn&&ang===a)?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+      }
+      ctx.closePath();
+      ctx.moveTo(hole,0); ctx.arc(0,0,hole,0,TAU,true);
+      ctx.fillStyle = isMulti(P)?tone(P,0):P.ink; ctx.fill("evenodd");
+      ctx.strokeStyle=isMulti(P)?tone(P,1):(isTwoTone(P)?P.accent:P.bg); ctx.lineWidth=R*0.03*wOf(P);
+      ctx.beginPath(); ctx.arc(0,0,hole+R*0.06,0,TAU); ctx.stroke();
+    } },
+
+  { id:"star-spiral", name:"Star Spiral", theme:"geometry", frames:24,
+    draw(ctx,R,P){
+      const N=Math.round(18+P.place*40), turns=2+P.scale*2.5;
+      const star=(cx,cy,rr,rot,col)=>{ ctx.fillStyle=col; ctx.beginPath();
+        for(let k=0;k<10;k++){ const r=k%2?rr*0.45:rr, a=rot+k/10*TAU, x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r; k?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.closePath(); ctx.fill(); };
+      for(let i=0;i<N;i++){ const f=i/N, ang=f*TAU*turns, r=R*0.1+f*R*0.85, sz=(R*0.03+R*0.06*f)*P.scale;
+        star(Math.cos(ang)*r, Math.sin(ang)*r, sz, ang, tone(P,i)); }
+    } },
+
+  /* ---- PATTERNS ---- */
+  { id:"oprings", name:"Op Rings", theme:"patterns", frames:18,
+    draw(ctx,R,P){
+      const rings = Math.round(7 + P.scale*11);
+      const segs  = Math.round(8 + P.place*22);
+      ctx.lineCap="butt";
+      const space = R*0.9/rings;
+      ctx.lineWidth = Math.min(space*0.95, space*0.62*wOf(P));
+      for(let ri=1;ri<=rings;ri++){
+        const r = R*0.07 + (R*0.9)*ri/rings, off = ri*0.42;
+        for(let si=0;si<segs;si++){
+          if(si%2) continue;
+          const a0 = si/segs*TAU + off, a1=(si+1)/segs*TAU + off;
+          ctx.strokeStyle = tone(P, ri);
+          ctx.beginPath(); ctx.arc(0,0,r,a0,a1); ctx.stroke();
+        }
+      }
+    } },
+
+  { id:"seed", name:"Seed Spiral", theme:"patterns", frames:24,
+    draw(ctx,R,P){
+      const N = Math.round(140 + P.place*420);
+      const c = R/Math.sqrt(N)*1.05, golden = Math.PI*(3-Math.sqrt(5)), multi=isMulti(P), two=isTwoTone(P);
+      for(let i=0;i<N;i++){
+        const a=i*golden, r=c*Math.sqrt(i), dr = R*0.014*P.scale*(0.5+0.9*i/N);
+        ctx.fillStyle = multi ? tone(P, Math.floor(i/9)) : ((two && i%8===0)?P.accent:P.ink);
+        ctx.beginPath(); ctx.arc(Math.cos(a)*r, Math.sin(a)*r, dr, 0, TAU); ctx.fill();
+      }
+    } },
+
+  { id:"ripple", name:"Ripple", theme:"patterns", frames:8,
+    draw(ctx,R,P){
+      const rings = Math.round(5 + P.scale*8), k = Math.round(4 + P.place*10), amp = R*0.035;
+      ctx.lineWidth=R*0.012*wOf(P);
+      for(let ri=1;ri<=rings;ri++){
+        const baseR = R*0.12 + (R*0.84)*ri/rings, ph = ri*0.7;
+        ctx.beginPath();
+        for(let j=0;j<=160;j++){ const ang=j/160*TAU, r=baseR + amp*Math.sin(k*ang+ph); j?ctx.lineTo(Math.cos(ang)*r,Math.sin(ang)*r):ctx.moveTo(Math.cos(ang)*r,Math.sin(ang)*r); }
+        ctx.closePath(); ctx.strokeStyle=tone(P, ri); ctx.stroke();
+      }
+    } },
+
+  { id:"bloom", name:"Bloom", theme:"patterns", frames:7,
+    draw(ctx,R,P){
+      const m = Math.round(5 + P.place*9), skew = 0.34, petR = R*0.92;
+      for(let layer=0; layer<2; layer++){
+        const count = m + layer, scl = layer? 0.62 : 1;
+        for(let i=0;i<count;i++){
+          ctx.fillStyle = tone(P, layer? i+3 : i);
+          ctx.save(); ctx.rotate(i/count*TAU + skew*scl);
+          ctx.beginPath(); ctx.ellipse(0,-petR*0.5*scl, petR*0.15*P.scale*scl, petR*0.5*scl, 0,0,TAU); ctx.fill();
+          ctx.restore();
+        }
+      }
+      ctx.fillStyle = isMulti(P)?tone(P,0):(isTwoTone(P)?P.accent:P.bg);
+      ctx.beginPath(); ctx.arc(0,0,R*0.1*P.scale,0,TAU); ctx.fill();
+    } },
+
+  { id:"vortex", name:"Vortex", theme:"patterns", frames:24,
+    draw(ctx,R,P){
+      const arms = 2 + Math.round(P.place*4), N = Math.round(140 + P.scale*260);
+      for(let n=0;n<N;n++){
+        const f=n/N, r=R*0.96*Math.sqrt(f), arm=n%arms;
+        const a = arm/arms*TAU + f*2.6*TAU, dr=R*0.02*(1-f*0.55);
+        ctx.fillStyle=tone(P, arm);
+        ctx.beginPath(); ctx.arc(Math.cos(a)*r, Math.sin(a)*r, dr, 0, TAU); ctx.fill();
+      }
+    } },
+
+  { id:"chevron", name:"Chevron Rings", theme:"patterns", frames:14,
+    draw(ctx,R,P){
+      const rings=Math.round(4+P.scale*7), zig=Math.round(7+P.place*18), amp=R*0.03;
+      ctx.lineWidth=Math.max(1,R*0.014*wOf(P));
+      for(let ri=1;ri<=rings;ri++){
+        const baseR=R*0.12 + R*0.84*ri/rings; ctx.strokeStyle=tone(P, ri);
+        ctx.beginPath();
+        for(let j=0;j<=zig*2;j++){ const a=j/(zig*2)*TAU, r=baseR+((j%2)?amp:-amp); j?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); }
+        ctx.closePath(); ctx.stroke();
+      }
+    } },
+
+  { id:"halftone", name:"Halftone Swirl", theme:"patterns", frames:2,
+    draw(ctx,R,P){
+      const rows=Math.round(8+P.scale*9), lobes=1+Math.round(P.place*4), multi=isMulti(P), two=isTwoTone(P);
+      for(let ri=1;ri<=rows;ri++){
+        const r=R*0.1 + R*0.86*ri/rows, cols=Math.max(6, Math.round((TAU*r)/(R*0.12)));
+        for(let ci=0;ci<cols;ci++){
+          const a=ci/cols*TAU, tt=0.5+0.5*Math.sin(lobes*a), dr=R*0.055*tt + R*0.004;
+          ctx.fillStyle = multi ? tone(P, ci) : ((two&&tt>0.66)?P.accent:P.ink);
+          ctx.beginPath(); ctx.arc(Math.cos(a)*r, Math.sin(a)*r, dr, 0, TAU); ctx.fill();
+        }
+      }
+    } },
+
+  { id:"colorwheel", name:"Colour Wheel", theme:"patterns", frames:24,
+    draw(ctx,R,P){
+      const n = Math.round(10 + P.place*26), hole=R*0.14, multi=isMulti(P), two=isTwoTone(P);
+      for(let i=0;i<n;i++){
+        if(multi) ctx.fillStyle=tone(P,i);
+        else if(i%2===0) ctx.fillStyle=P.ink;
+        else if(two) ctx.fillStyle=P.accent;
+        else continue;
+        const a0=i/n*TAU, a1=(i+1)/n*TAU;
+        ctx.beginPath(); ctx.arc(0,0,R*0.97,a0,a1); ctx.arc(0,0,hole,a1,a0,true); ctx.closePath(); ctx.fill();
+      }
+      ctx.lineWidth=R*0.045*wOf(P); ctx.strokeStyle=multi?tone(P,3):(two?P.accent:P.bg);
+      ctx.beginPath(); ctx.arc(0,0,R*0.55,0,TAU); ctx.stroke();
+    } },
+
+  /* ---- PSYCHEDELIC · SOUL ---- */
+  { id:"flames", name:"Flame Bloom", theme:"psychedelic", frames:9,
+    draw(ctx,R,P){
+      const n=Math.round(6+P.place*10), layers=1+Math.round(P.scale*1.6);
+      for(let L=layers-1; L>=0; L--){
+        const outerR=R*(0.96-L*0.2), innerR=outerR*0.3, hw=(TAU/n)*0.46;
+        for(let i=0;i<n;i++){
+          const a=i/n*TAU + L*0.14; ctx.fillStyle=tone(P, i+L);
+          const c1=innerR + (outerR-innerR)*0.55;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a-hw)*innerR, Math.sin(a-hw)*innerR);
+          ctx.quadraticCurveTo(Math.cos(a-hw*0.5)*c1, Math.sin(a-hw*0.5)*c1, Math.cos(a)*outerR, Math.sin(a)*outerR);
+          ctx.quadraticCurveTo(Math.cos(a+hw*0.5)*c1, Math.sin(a+hw*0.5)*c1, Math.cos(a+hw)*innerR, Math.sin(a+hw)*innerR);
+          ctx.closePath(); ctx.fill();
+        }
+      }
+      ctx.fillStyle=tone(P,0); ctx.beginPath(); ctx.arc(0,0,R*0.12,0,TAU); ctx.fill();
+    } },
+
+  { id:"eye", name:"Hypno Eye", theme:"psychedelic", frames:16,
+    draw(ctx,R,P){
+      const rings=Math.round(5+P.scale*7);
+      for(let ri=rings; ri>=1; ri--){ ctx.fillStyle=tone(P, ri); ctx.beginPath(); ctx.arc(0,0,R*0.7*ri/rings,0,TAU); ctx.fill(); }
+      const n=Math.round(10+P.place*22), r0=R*0.7, r1=R*0.97;
+      for(let i=0;i<n;i++){
+        if(i%2) continue; ctx.fillStyle=tone(P,i);
+        const a0=i/n*TAU, a1=(i+1)/n*TAU, am=(a0+a1)/2;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a0)*r0,Math.sin(a0)*r0);
+        ctx.lineTo(Math.cos(am)*r1,Math.sin(am)*r1); ctx.lineTo(Math.cos(a1)*r0,Math.sin(a1)*r0);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle=isMulti(P)?tone(P,0):P.ink; ctx.beginPath(); ctx.arc(0,0,R*0.12,0,TAU); ctx.fill();
+    } },
+
+  { id:"mandala", name:"Soul Mandala", theme:"psychedelic", frames:12,
+    draw(ctx,R,P){
+      const bands=Math.round(4+P.scale*4), w=wOf(P);
+      for(let b=0;b<bands;b++){
+        const r0=R*(b/bands)*0.95, r1=R*((b+1)/bands)*0.95, rm=(r0+r1)/2, col=tone(P,b), kind=b%3;
+        if(kind===0){
+          const m=Math.max(6,Math.round((TAU*rm)/(R*0.11))); ctx.fillStyle=col;
+          for(let i=0;i<m;i++){ const a=i/m*TAU; ctx.beginPath(); ctx.arc(Math.cos(a)*rm,Math.sin(a)*rm,(r1-r0)*0.32,0,TAU); ctx.fill(); }
+        } else if(kind===1){
+          ctx.strokeStyle=col; ctx.lineWidth=(r1-r0)*0.5*w; ctx.beginPath(); ctx.arc(0,0,rm,0,TAU); ctx.stroke();
+        } else {
+          const m=Math.max(8,Math.round((TAU*rm)/(R*0.08))); ctx.strokeStyle=col; ctx.lineCap="butt"; ctx.lineWidth=Math.max(1,R*0.02*w);
+          for(let i=0;i<m;i++){ const a=i/m*TAU; ctx.beginPath(); ctx.moveTo(Math.cos(a)*r0,Math.sin(a)*r0); ctx.lineTo(Math.cos(a)*r1,Math.sin(a)*r1); ctx.stroke(); }
+        }
+      }
+    } },
+
+  /* ---- HOUSE · ACID ---- */
+  { id:"bolts", name:"Lightning", theme:"house", frames:7,
+    draw(ctx,R,P){
+      const n=Math.round(5+P.place*9), w=wOf(P);
+      ctx.lineCap="round"; ctx.lineJoin="round"; ctx.lineWidth=Math.max(1.5,R*0.024*w);
+      const r0=R*0.14, r1=R*0.95, segs=4;
+      for(let i=0;i<n;i++){
+        const base=i/n*TAU; ctx.strokeStyle=tone(P,i); ctx.beginPath();
+        for(let j=0;j<=segs;j++){
+          const f=j/segs, r=r0+(r1-r0)*f;
+          const jitter=(j%2?1:-1)*0.18*((j>0&&j<segs)?1:0)*(1+P.scale*0.4);
+          const a=base+jitter;
+          j?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle=tone(P,0); ctx.beginPath(); ctx.arc(0,0,R*0.12,0,TAU); ctx.fill();
+    } },
+
+  { id:"smiley", name:"Acid Smiley", theme:"house", frames:8,
+    draw(ctx,R,P){
+      const K=Math.round(6+P.place*6), fc=R*0.16*P.scale, w=wOf(P), ringR=R*0.62;
+      for(let i=0;i<K;i++){
+        ctx.save(); ctx.rotate(i/K*TAU); ctx.translate(0,-ringR);
+        ctx.fillStyle = isMulti(P)?tone(P,i):P.ink;
+        ctx.beginPath(); ctx.arc(0,0,fc,0,TAU); ctx.fill();
+        ctx.fillStyle=P.bg; ctx.strokeStyle=P.bg; ctx.lineCap="round"; ctx.lineWidth=fc*0.16*w;
+        ctx.fillRect(-fc*0.44,-fc*0.34, fc*0.2, fc*0.46);
+        ctx.fillRect( fc*0.24,-fc*0.34, fc*0.2, fc*0.46);
+        ctx.beginPath(); ctx.arc(0,0,fc*0.56, 0.18*Math.PI, 0.82*Math.PI); ctx.stroke();
+        ctx.restore();
+      }
+    } },
+
+  /* ---- ORGANIC · LIQUID (asymmetric, flowing) ---- */
+  { id:"liquid", name:"Liquid Marble", theme:"organic", frames:3,
+    draw(ctx,R,P){
+      const rings = 4 + Math.round(P.scale*6);
+      for(let ri=rings; ri>=1; ri--){
+        const base = R*0.16 + R*0.82*ri/rings, ph = ri*1.7;
+        ctx.fillStyle = tone(P, ri);
+        ctx.beginPath();
+        for(let j=0;j<=120;j++){
+          const th=j/120*TAU;
+          const wob = 1 + 0.10*Math.sin(2*th+ph) + 0.07*Math.sin(3*th+ph*1.3) + 0.05*Math.sin(5*th+ph*0.6);
+          const r = base*wob;
+          j?ctx.lineTo(Math.cos(th)*r,Math.sin(th)*r):ctx.moveTo(Math.cos(th)*r,Math.sin(th)*r);
+        }
+        ctx.closePath(); ctx.fill();
+      }
+    } },
+
+  { id:"smoke", name:"Smoke Tendrils", theme:"organic", frames:5,
+    draw(ctx,R,P){
+      const n = 5 + Math.round(P.place*7), w=wOf(P);
+      ctx.lineCap="round";
+      for(let i=0;i<n;i++){
+        const base = i/n*TAU + (hash(i)-0.5)*0.8;       // uneven spacing
+        const dir  = hash(i+5)<0.5? -1 : 1;
+        const curl = (0.5 + hash(i+9)*1.8) * dir;        // each tendril curls differently
+        const len  = 0.55 + hash(i+3)*0.42;
+        ctx.strokeStyle = tone(P, i);
+        const steps=30;
+        for(let j=0;j<steps;j++){
+          const f=j/steps, f1=(j+1)/steps;
+          const a  = base + f*curl  + 0.18*Math.sin(f*6+i);
+          const a1 = base + f1*curl + 0.18*Math.sin(f1*6+i);
+          const r  = R*0.1 + f*R*len, r1 = R*0.1 + f1*R*len;
+          ctx.lineWidth = (R*0.085*(1-f)+R*0.01)*w;
+          ctx.beginPath(); ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r); ctx.lineTo(Math.cos(a1)*r1,Math.sin(a1)*r1); ctx.stroke();
+        }
+      }
+      ctx.fillStyle=tone(P,0); ctx.beginPath(); ctx.arc(0,0,R*0.1,0,TAU); ctx.fill();
+    } },
+
+  { id:"blobs", name:"Lava Blobs", theme:"organic", frames:4,
+    draw(ctx,R,P){
+      const n = 5 + Math.round(P.scale*7);
+      for(let i=0;i<n;i++){
+        const pr=(0.15+hash(i)*0.62)*R, pa=hash(i+1)*TAU, bs=R*(0.12+hash(i+2)*0.2), ph=hash(i+3)*TAU;
+        const cx=Math.cos(pa)*pr, cy=Math.sin(pa)*pr;
+        ctx.fillStyle = tone(P, i);
+        ctx.beginPath();
+        for(let j=0;j<=60;j++){
+          const th=j/60*TAU, r=bs*(1 + 0.28*Math.sin(3*th+ph) + 0.16*Math.sin(5*th+ph*1.7));
+          const x=cx+Math.cos(th)*r, y=cy+Math.sin(th)*r;
+          j?ctx.lineTo(x,y):ctx.moveTo(x,y);
+        }
+        ctx.closePath(); ctx.fill();
+      }
+    } },
+
+  { id:"serpent", name:"Serpentine", theme:"organic", frames:3,
+    draw(ctx,R,P){
+      const turns = 2 + P.scale*2.4, w=wOf(P);
+      ctx.lineCap="round";
+      const ribbon = (col, ph, lw)=>{
+        ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath();
+        const steps=260;
+        for(let i=0;i<=steps;i++){
+          const f=i/steps, ang=f*TAU*turns + 0.5*Math.sin(f*TAU*1.5+ph), r=R*0.08 + f*R*0.84;
+          i?ctx.lineTo(Math.cos(ang)*r,Math.sin(ang)*r):ctx.moveTo(Math.cos(ang)*r,Math.sin(ang)*r);
+        }
+        ctx.stroke();
+      };
+      ribbon(tone(P,0), 0, R*0.13*w);
+      if(isMulti(P)||isTwoTone(P)) ribbon(tone(P,1), Math.PI, R*0.08*w);
+    } },
+
+  { id:"paisley", name:"Paisley Swirl", theme:"organic", frames:7,
+    draw(ctx,R,P){
+      const N = 6 + Math.round(P.place*9), turns = 1.1 + P.scale*0.9;
+      for(let i=0;i<N;i++){
+        const f=(i+1)/(N+1), ang=f*TAU*turns, r=R*0.12 + f*R*0.78, s=R*(0.1+0.16*f)*P.scale, rB=0.5*s;
+        ctx.save();
+        ctx.translate(Math.cos(ang)*r, Math.sin(ang)*r);
+        ctx.rotate(ang + Math.PI*0.5);
+        ctx.fillStyle = tone(P, i);
+        ctx.beginPath();
+        ctx.arc(0,0,rB, -Math.PI*0.5, Math.PI*0.95, false);
+        ctx.quadraticCurveTo(-1.15*s, 0.35*s, -1.45*s, -0.55*s);
+        ctx.quadraticCurveTo(-0.55*s, -0.55*s, 0,-rB);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = tone(P, i+3);
+        ctx.beginPath(); ctx.arc(0,0,rB*0.52,0,TAU); ctx.fill();
+        ctx.restore();
+      }
+    } },
+];
+const animById = id => ANIMS.find(a=>a.id===id) || ANIMS[0];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const NDISCS = 12;
+const SPEED_MIN=-1.2, SPEED_MAX=1.2;
+const LS_KEY = "slipmat.v1";
+
+const DEFAULT_BOARD = ["paisley","liquid","smoke","blobs","serpent","tentacles","flames","mandala","vortex","eye","star-spiral","walk"];
+function defaultDisc(i){
+  return { anim: DEFAULT_BOARD[i % DEFAULT_BOARD.length], scale:1, place:0.55, weight:1,
+           speed: 0.18 + (i%5)*0.08, angle: (i*0.6)%TAU, paused:false };
+}
+const state = {
+  palette:"soul", theme:"all", strobe:false, pausedAll:false, active:0,
+  discs: Array.from({length:NDISCS}, (_,i)=>defaultDisc(i)),
+};
+let store = { boards:[], favs:[] };
+
+function loadStore(){ try{ const r=localStorage.getItem(LS_KEY); if(r) store=JSON.parse(r); }catch(e){} }
+function saveStore(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); }catch(e){} }
+loadStore();
+
+/* =========================================================
+   DISC RENDERING
+   ========================================================= */
+function displayAngle(disc, anim){
+  if(!state.strobe) return disc.angle;
+  const step = TAU/Math.max(1, anim.frames);
+  return Math.round(disc.angle/step)*step;
+}
+function renderDisc(ctx, size, disc, palId){
+  const P = paletteById(palId || state.palette);
+  const anim = animById(disc.anim);
+  const cx=size/2, cy=size/2, R=size*0.46;
+  ctx.clearRect(0,0,size,size);
+  ctx.save();
+  ctx.translate(cx,cy);
+
+  ctx.save();
+  ctx.rotate(displayAngle(disc, anim));
+
+  ctx.save();
+  ctx.shadowColor="rgba(0,0,0,.18)"; ctx.shadowBlur=R*0.09; ctx.shadowOffsetY=R*0.025;
+  ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.fillStyle=P.bg; ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(0,0,R*0.995,0,TAU); ctx.clip();
+  ctx.strokeStyle=P.groove; ctx.lineWidth=Math.max(.5,R*0.006);
+  for(let r=R*0.2; r<R*0.98; r+=R*0.05){ ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke(); }
+  ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
+  const Pm = { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight };
+  anim.draw(ctx, R, Pm);
+  ctx.restore();
+  ctx.restore(); // un-rotate
+
+  // static overlays — never rotate
+  ctx.beginPath(); ctx.arc(0,0,R,0,TAU);
+  ctx.lineWidth=Math.max(1,R*0.012); ctx.strokeStyle=P.edge; ctx.stroke();
+
+  const g=ctx.createRadialGradient(-R*0.42,-R*0.5,R*0.05, 0,0,R*1.25);
+  g.addColorStop(0,`rgba(255,255,255,${P.hi})`); g.addColorStop(.55,"rgba(255,255,255,0)");
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.fill();
+
+  ctx.fillStyle=P.label||P.edge; ctx.beginPath(); ctx.arc(0,0,R*0.052,0,TAU); ctx.fill();
+  ctx.fillStyle=P.bg;            ctx.beginPath(); ctx.arc(0,0,R*0.016,0,TAU); ctx.fill();
+
+  ctx.restore();
+}
+
+/* Clean circular artwork for PNG export (no gloss / shadow / grooves / spindle).
+   Colour palettes keep their background; the "Black & White" palette exports the
+   black shapes ONLY, on transparency (luminance → alpha). */
+function renderExport(ctx, size, disc){
+  const P = paletteById(state.palette);
+  const anim = animById(disc.anim);
+  const cx=size/2, cy=size/2, R=size*0.5*0.98;
+  const alphaCut = (state.palette === "mono");
+  ctx.clearRect(0,0,size,size);
+  if(alphaCut){ ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,size,size); }  // paint white, convert later
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.clip();
+  if(!alphaCut){ ctx.fillStyle=P.bg; ctx.fillRect(-cx,-cy,size,size); }
+  ctx.rotate(displayAngle(disc, anim));                                 // matches the on-screen frame
+  ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
+  const Pm = { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight };
+  anim.draw(ctx, R, Pm);
+  ctx.restore();
+  if(alphaCut){
+    const img=ctx.getImageData(0,0,size,size), d=img.data;
+    for(let p=0;p<d.length;p+=4){
+      const L=(d[p]+d[p+1]+d[p+2])/3;       // white(255)→alpha 0, black(0)→alpha 255
+      d[p]=13; d[p+1]=13; d[p+2]=13; d[p+3]=Math.round(255-L);
+    }
+    ctx.putImageData(img,0,0);
+  }
+}
+const exportCfg = { format:"png", size:2000 };
+const fmt = n => Math.round(n*1000)/1000;
+
+/* Minimal canvas→SVG adapter. Transforms in the designs are rigid (translate+
+   rotate only, no scale), so we bake every point through the CTM into absolute
+   SVG coords — radii/stroke-widths are preserved, circles stay circular. */
+function makeSVGCtx(skipColor){
+  const out=[]; let d="";
+  let m=[1,0,0,1,0,0]; const ms=[]; const ss=[];
+  const tx=(x,y)=>[m[0]*x+m[2]*y+m[4], m[1]*x+m[3]*y+m[5]];
+  const rot=()=>Math.atan2(m[1],m[0]);
+  const c=(s)=>String(s);
+  const ctx={
+    fillStyle:"#000", strokeStyle:"#000", lineWidth:1, lineCap:"butt", lineJoin:"miter",
+    save(){ ms.push(m.slice()); ss.push([this.fillStyle,this.strokeStyle,this.lineWidth,this.lineCap,this.lineJoin]); },
+    restore(){ if(ms.length)m=ms.pop(); const s=ss.pop(); if(s){this.fillStyle=s[0];this.strokeStyle=s[1];this.lineWidth=s[2];this.lineCap=s[3];this.lineJoin=s[4];} },
+    translate(x,y){ m=[m[0],m[1],m[2],m[3], m[0]*x+m[2]*y+m[4], m[1]*x+m[3]*y+m[5]]; },
+    rotate(t){ const co=Math.cos(t),si=Math.sin(t); m=[m[0]*co+m[2]*si, m[1]*co+m[3]*si, -m[0]*si+m[2]*co, -m[1]*si+m[3]*co, m[4], m[5]]; },
+    beginPath(){ d=""; },
+    closePath(){ d+="Z "; },
+    moveTo(x,y){ const p=tx(x,y); d+=`M${fmt(p[0])} ${fmt(p[1])} `; },
+    lineTo(x,y){ const p=tx(x,y); d+=`L${fmt(p[0])} ${fmt(p[1])} `; },
+    quadraticCurveTo(cx,cy,x,y){ const a=tx(cx,cy),p=tx(x,y); d+=`Q${fmt(a[0])} ${fmt(a[1])} ${fmt(p[0])} ${fmt(p[1])} `; },
+    bezierCurveTo(x1,y1,x2,y2,x,y){ const a=tx(x1,y1),b=tx(x2,y2),p=tx(x,y); d+=`C${fmt(a[0])} ${fmt(a[1])} ${fmt(b[0])} ${fmt(b[1])} ${fmt(p[0])} ${fmt(p[1])} `; },
+    arc(cx,cy,r,a0,a1,ccw){ this._a(cx,cy,r,r,0,a0,a1,!!ccw); },
+    ellipse(cx,cy,rx,ry,rot0,a0,a1,ccw){ this._a(cx,cy,rx,ry,rot0,a0,a1,!!ccw); },
+    _a(cx,cy,rx,ry,rot0,a0,a1,ccw){
+      const xr=(rot0+rot())*180/Math.PI;
+      const pt=(ang)=>{ const lx=cx+rx*Math.cos(ang)*Math.cos(rot0)-ry*Math.sin(ang)*Math.sin(rot0),
+                              ly=cy+rx*Math.cos(ang)*Math.sin(rot0)+ry*Math.sin(ang)*Math.cos(rot0); return tx(lx,ly); };
+      const full=Math.abs(a1-a0)>=TAU-1e-6;
+      if(full){
+        const p0=pt(a0),pm=pt(a0+Math.PI),p1=pt(a0+TAU), sw=ccw?0:1;
+        d+=(d?"L":"M")+`${fmt(p0[0])} ${fmt(p0[1])} `;
+        d+=`A${fmt(rx)} ${fmt(ry)} ${fmt(xr)} 0 ${sw} ${fmt(pm[0])} ${fmt(pm[1])} A${fmt(rx)} ${fmt(ry)} ${fmt(xr)} 0 ${sw} ${fmt(p1[0])} ${fmt(p1[1])} `;
+      } else {
+        const p0=pt(a0),p1=pt(a1); let dl=a1-a0; if(ccw&&dl>0)dl-=TAU; if(!ccw&&dl<0)dl+=TAU;
+        const large=Math.abs(dl)>Math.PI?1:0, sw=ccw?0:1;
+        d+=(d?"L":"M")+`${fmt(p0[0])} ${fmt(p0[1])} A${fmt(rx)} ${fmt(ry)} ${fmt(xr)} ${large} ${sw} ${fmt(p1[0])} ${fmt(p1[1])} `;
+      }
+    },
+    rect(x,y,w,h){ const a=tx(x,y),b=tx(x+w,y),e=tx(x+w,y+h),g=tx(x,y+h);
+      d+=`M${fmt(a[0])} ${fmt(a[1])} L${fmt(b[0])} ${fmt(b[1])} L${fmt(e[0])} ${fmt(e[1])} L${fmt(g[0])} ${fmt(g[1])} Z `; },
+    fillRect(x,y,w,h){ this.beginPath(); this.rect(x,y,w,h); this.fill(); },
+    fill(rule){ if(!d)return; if(skipColor&&this.fillStyle===skipColor)return;
+      out.push(`<path d="${d}" fill="${c(this.fillStyle)}"${rule==="evenodd"?' fill-rule="evenodd"':''}/>`); },
+    stroke(){ if(!d)return; if(skipColor&&this.strokeStyle===skipColor)return;
+      out.push(`<path d="${d}" fill="none" stroke="${c(this.strokeStyle)}" stroke-width="${fmt(this.lineWidth)}" stroke-linecap="${this.lineCap}" stroke-linejoin="${this.lineJoin}"/>`); },
+    clip(){}, createRadialGradient(){ return {addColorStop(){}}; },
+    svg(){ return out.join(""); }
+  };
+  return ctx;
+}
+function buildDiscSVG(disc, size){
+  const P=paletteById(state.palette), anim=animById(disc.anim);
+  const R=size*0.5*0.98, cx=size/2, cy=size/2, mono=state.palette==="mono";
+  const ctx=makeSVGCtx(mono?P.bg:null);
+  ctx.translate(cx,cy); ctx.rotate(displayAngle(disc,anim));
+  ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
+  anim.draw(ctx, R, { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight });
+  const bg = mono ? "" : `<circle cx="${cx}" cy="${cy}" r="${fmt(R)}" fill="${P.bg}"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`+
+         `<defs><clipPath id="disc"><circle cx="${cx}" cy="${cy}" r="${fmt(R)}"/></clipPath></defs>`+
+         `<g clip-path="url(#disc)">${bg}${ctx.svg()}</g></svg>`;
+}
+function triggerDownload(href, name){ const a=document.createElement("a"); a.href=href; a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+function downloadDisc(i){
+  const d=state.discs[i], base=`slipmat-${String(i+1).padStart(2,"0")}-${d.anim}-${state.palette}`;
+  if(exportCfg.format==="svg"){
+    triggerDownload("data:image/svg+xml;charset=utf-8,"+encodeURIComponent(buildDiscSVG(d, exportCfg.size)), base+".svg");
+  } else {
+    const c=document.createElement("canvas"); c.width=c.height=exportCfg.size;
+    renderExport(c.getContext("2d"), exportCfg.size, d);
+    triggerDownload(c.toDataURL("image/png"), base+".png");
+  }
+}
+function downloadAll(){ for(let i=0;i<NDISCS;i++){ const k=i; setTimeout(()=>downloadDisc(k), i*350); } }
+
+/* =========================================================
+   BUILD THE UI
+   ========================================================= */
+const grid = document.getElementById("grid");
+const cards = [];
+
+function animOptionsHTML(){
+  const groups={};
+  ANIMS.forEach(a=>{ (groups[a.theme]=groups[a.theme]||[]).push(a); });
+  let html="";
+  THEMES.filter(t=>t.id!=="all").forEach(t=>{
+    if(!groups[t.id]) return;
+    html+=`<optgroup label="${t.name}">`;
+    groups[t.id].forEach(a=>html+=`<option value="${a.id}">${a.name}</option>`);
+    html+="</optgroup>";
+  });
+  return html;
+}
+
+const SLIDER_CFG={scale:[0.4,1.8,0.01], place:[0,1,0.01], speed:[SPEED_MIN,SPEED_MAX,0.01], weight:[0.4,2.6,0.02]};
+function sliderRow(k,label){
+  const cfg=SLIDER_CFG[k];
+  return `<div class="slider-row">
+    <span>${label}</span>
+    <input type="range" data-k="${k}" min="${cfg[0]}" max="${cfg[1]}" step="${cfg[2]}">
+    <span class="val" data-v="${k}"></span>
+  </div>`;
+}
+
+function buildCards(){
+  const tmplOpts = animOptionsHTML();
+  for(let i=0;i<NDISCS;i++){
+    const card=document.createElement("div");
+    card.className="card"; card.dataset.i=i;
+    card.innerHTML=`
+      <div class="disc-wrap">
+        <canvas></canvas>
+        <span class="idx">${String(i+1).padStart(2,"0")}</span>
+      </div>
+      <div class="card-bar">
+        <select class="anim">${tmplOpts}</select>
+        <button class="iconbtn play" title="Pause / play this disc"></button>
+        <button class="iconbtn fav" title="Save this design to favourites">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.5-9.5-9C1 9 2.5 5.5 6 5.5c2 0 3 1.2 4 2.5 1-1.3 2-2.5 4-2.5 3.5 0 5 3.5 3.5 6.5C19 16.5 12 21 12 21z"/></svg>
+        </button>
+        <button class="iconbtn dl" title="Download PNG (Black & White exports with transparency)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+        </button>
+      </div>
+      <div class="sliders">
+        ${sliderRow("scale","Scale")}
+        ${sliderRow("place","Place")}
+        ${sliderRow("weight","Line")}
+        ${sliderRow("speed","Spin")}
+      </div>`;
+    grid.appendChild(card);
+
+    const canvas=card.querySelector("canvas");
+    const ctx=canvas.getContext("2d");
+    const refs={
+      card, canvas, ctx,
+      anim:card.querySelector(".anim"),
+      play:card.querySelector(".play"),
+      fav:card.querySelector(".fav"),
+      dl:card.querySelector(".dl"),
+      scale:card.querySelector('[data-k="scale"]'),
+      place:card.querySelector('[data-k="place"]'),
+      weight:card.querySelector('[data-k="weight"]'),
+      speed:card.querySelector('[data-k="speed"]'),
+      scaleV:card.querySelector('[data-v="scale"]'),
+      placeV:card.querySelector('[data-v="place"]'),
+      weightV:card.querySelector('[data-v="weight"]'),
+      speedV:card.querySelector('[data-v="speed"]'),
+    };
+    cards.push(refs);
+    wireCard(i, refs);
+  }
+  resizeCanvases();
+  syncAllCards();
+}
+
+const ICON_PAUSE=`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>`;
+const ICON_PLAY=`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>`;
+
+function wireCard(i, r){
+  r.anim.addEventListener("change",()=>{ state.discs[i].anim=r.anim.value; });
+  r.play.addEventListener("click",()=>{ state.discs[i].paused=!state.discs[i].paused; updatePlayBtn(i); });
+  r.fav.addEventListener("click",()=>{ toggleFav(i); });
+  r.dl.addEventListener("click",()=>{ downloadDisc(i); });
+  const bind=(el,key)=>el.addEventListener("input",()=>{ state.discs[i][key]=parseFloat(el.value); updateSliderVals(i); });
+  bind(r.scale,"scale"); bind(r.place,"place"); bind(r.weight,"weight"); bind(r.speed,"speed");
+  r.card.querySelector(".disc-wrap").addEventListener("click",()=>setActive(i));
+}
+function updatePlayBtn(i){
+  const paused = state.discs[i].paused || state.pausedAll;
+  cards[i].play.innerHTML = paused?ICON_PLAY:ICON_PAUSE;
+}
+function updateSliderVals(i){
+  const d=state.discs[i], r=cards[i];
+  r.scaleV.textContent = d.scale.toFixed(2);
+  r.placeV.textContent = d.place.toFixed(2);
+  r.weightV.textContent = d.weight.toFixed(1);
+  r.speedV.textContent = (d.speed*45).toFixed(0);
+}
+function syncCard(i){
+  const d=state.discs[i], r=cards[i];
+  r.anim.value=d.anim; r.scale.value=d.scale; r.place.value=d.place; r.weight.value=d.weight; r.speed.value=d.speed;
+  updateSliderVals(i); updatePlayBtn(i);
+  r.card.classList.toggle("active", state.active===i);
+}
+function syncAllCards(){ for(let i=0;i<NDISCS;i++) syncCard(i); refreshFavBtns(); }
+function setActive(i){ state.active=i; cards.forEach((c,idx)=>c.card.classList.toggle("active",idx===i)); }
+
+/* =========================================================
+   FAVOURITES / BOARDS
+   ========================================================= */
+function discConfig(i){
+  const d=state.discs[i];
+  return {anim:d.anim, scale:d.scale, place:d.place, weight:d.weight, speed:d.speed, angle:d.angle, paused:false, palette:state.palette};
+}
+function favKey(f){ return `${f.anim}|${f.scale}|${f.place}|${f.weight}`; }
+function isFav(i){ const k=favKey(state.discs[i]); return store.favs.some(f=>favKey(f)===k); }
+function toggleFav(i){
+  const k=favKey(state.discs[i]);
+  const idx=store.favs.findIndex(f=>favKey(f)===k);
+  if(idx>=0) store.favs.splice(idx,1);
+  else store.favs.push(discConfig(i));
+  saveStore(); refreshFavBtns(); renderFavList();
+}
+function refreshFavBtns(){ for(let i=0;i<NDISCS;i++) cards[i].fav.classList.toggle("on", isFav(i)); }
+
+function applyConfigToDisc(i, cfg){
+  const d=state.discs[i];
+  d.anim=cfg.anim; d.scale=cfg.scale; d.place=cfg.place; d.weight=cfg.weight??1; d.speed=cfg.speed;
+  if(cfg.palette) state.palette=cfg.palette;
+  syncCard(i); syncPaletteSelect(); refreshFavBtns();
+}
+
+function saveBoard(){
+  const name=(prompt("Name this board:", "Board "+(store.boards.length+1))||"").trim();
+  if(!name) return;
+  store.boards.unshift({
+    name, palette:state.palette, theme:state.theme, strobe:state.strobe,
+    discs: state.discs.map(d=>({anim:d.anim,scale:d.scale,place:d.place,weight:d.weight,speed:d.speed,angle:d.angle})),
+  });
+  saveStore(); renderBoardList();
+  flash(document.getElementById("saveBoard"), "Saved ✓");
+}
+function loadBoard(b){
+  state.palette=b.palette||"mono"; state.theme=b.theme||"all"; state.strobe=!!b.strobe;
+  b.discs.forEach((dc,i)=>{ if(!state.discs[i])return;
+    Object.assign(state.discs[i], {anim:dc.anim,scale:dc.scale,place:dc.place,weight:dc.weight??1,speed:dc.speed,angle:dc.angle||0,paused:false});
+  });
+  syncGlobalControls(); syncAllCards(); closeLib();
+}
+
+/* =========================================================
+   GLOBAL CONTROLS
+   ========================================================= */
+const themeSel=document.getElementById("theme");
+const paletteSel=document.getElementById("palette");
+const strobeToggle=document.getElementById("strobeToggle");
+
+THEMES.forEach(t=>themeSel.add(new Option(t.name,t.id)));
+PALETTES.forEach(p=>paletteSel.add(new Option(p.name,p.id)));
+
+function syncPaletteSelect(){ paletteSel.value=state.palette; }
+function syncGlobalControls(){
+  themeSel.value=state.theme; paletteSel.value=state.palette;
+  strobeToggle.classList.toggle("on", state.strobe);
+  document.querySelector("#pauseAll span").textContent = state.pausedAll?"Play all":"Pause all";
+}
+themeSel.addEventListener("change",()=>{ state.theme=themeSel.value; });
+paletteSel.addEventListener("change",()=>{ state.palette=paletteSel.value; });
+strobeToggle.addEventListener("click",()=>{ state.strobe=!state.strobe; syncGlobalControls(); });
+
+document.getElementById("pauseAll").addEventListener("click",togglePauseAll);
+function togglePauseAll(){ state.pausedAll=!state.pausedAll; syncGlobalControls(); for(let i=0;i<NDISCS;i++) updatePlayBtn(i); }
+
+document.getElementById("randomise").addEventListener("click",randomise);
+function randPool(){
+  const pool = state.theme==="all" ? ANIMS : ANIMS.filter(a=>a.theme===state.theme);
+  return pool.length?pool:ANIMS;
+}
+function randomise(){
+  const pool=randPool();
+  for(let i=0;i<NDISCS;i++){
+    const d=state.discs[i];
+    d.anim = pool[Math.floor(Math.random()*pool.length)].id;
+    d.scale = +(0.6+Math.random()*1.0).toFixed(2);
+    d.place = +(Math.random()).toFixed(2);
+    d.weight = +(0.7+Math.random()*1.3).toFixed(2);
+    d.speed = +(0.1 + Math.random()*0.7).toFixed(2) * (Math.random()<0.18?-1:1);
+    d.paused=false;
+  }
+  syncAllCards();
+}
+
+document.getElementById("saveBoard").addEventListener("click",saveBoard);
+
+/* =========================================================
+   LIBRARY MODAL
+   ========================================================= */
+const overlay=document.getElementById("overlay");
+document.getElementById("openLib").addEventListener("click",openLib);
+document.getElementById("closeLib").addEventListener("click",closeLib);
+overlay.addEventListener("click",e=>{ if(e.target===overlay) closeLib(); });
+function openLib(){ renderBoardList(); renderFavList(); overlay.classList.add("open"); }
+function closeLib(){ overlay.classList.remove("open"); }
+
+function renderBoardList(){
+  const list=document.getElementById("boardList");
+  list.innerHTML="";
+  if(!store.boards.length){ list.innerHTML=`<p class="empty">No saved boards yet — arrange the mats you like and hit “Save board”.</p>`; return; }
+  store.boards.forEach((b,idx)=>{
+    const el=document.createElement("div"); el.className="save-item";
+    const firstCfg={...b.discs[0]};
+    el.innerHTML=`
+      <canvas width="46" height="46"></canvas>
+      <div class="meta"><b>${escapeHTML(b.name)}</b><small>${b.discs.length} mats · ${paletteById(b.palette).name}</small></div>
+      <div class="acts">
+        <button class="iconbtn load" title="Load board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 6"/></svg></button>
+        <button class="iconbtn del" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>
+      </div>`;
+    renderDisc(el.querySelector("canvas").getContext("2d"),46,{...firstCfg,weight:firstCfg.weight??1},b.palette);
+    el.querySelector(".load").addEventListener("click",()=>loadBoard(b));
+    el.querySelector(".del").addEventListener("click",()=>{ store.boards.splice(idx,1); saveStore(); renderBoardList(); });
+    list.appendChild(el);
+  });
+}
+function renderFavList(){
+  const list=document.getElementById("favList");
+  list.innerHTML="";
+  if(!store.favs.length){ list.innerHTML=`<p class="empty">No favourites yet — tap the ♥ on a mat you like.</p>`; return; }
+  store.favs.forEach((f,idx)=>{
+    const chip=document.createElement("div"); chip.className="chip";
+    chip.innerHTML=`<canvas width="32" height="32"></canvas><span>${animById(f.anim).name}</span><span class="x" title="Remove">✕</span>`;
+    renderDisc(chip.querySelector("canvas").getContext("2d"),32,{...f,weight:f.weight??1},f.palette);
+    chip.querySelector("canvas").parentElement.addEventListener("click",e=>{
+      if(e.target.classList.contains("x")){ store.favs.splice(idx,1); saveStore(); renderFavList(); refreshFavBtns(); return; }
+      applyConfigToDisc(state.active, f); flash(chip, "→ disc "+(state.active+1));
+    });
+    list.appendChild(chip);
+  });
+}
+
+document.getElementById("expFormat").addEventListener("change",e=>{ exportCfg.format=e.target.value; });
+document.getElementById("expSize").addEventListener("change",e=>{ exportCfg.size=parseInt(e.target.value,10); });
+document.getElementById("dlAllBtn").addEventListener("click",()=>{ downloadAll(); flash(document.getElementById("dlAllBtn"),"Downloading…"); });
+
+document.getElementById("exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(store,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="slipmat-library.json"; a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change",e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{ try{ const d=JSON.parse(reader.result);
+    store.boards=(d.boards||[]).concat(store.boards); store.favs=(d.favs||[]).concat(store.favs);
+    saveStore(); renderBoardList(); renderFavList(); refreshFavBtns();
+  }catch(err){ alert("Could not read that file."); } };
+  reader.readAsText(file);
+});
+
+/* =========================================================
+   UTIL
+   ========================================================= */
+function escapeHTML(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function flash(el,msg){
+  const span=el.querySelector("span")||el; const old=span.textContent;
+  span.textContent=msg; setTimeout(()=>{span.textContent=old;},900);
+}
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space" && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){ e.preventDefault(); togglePauseAll(); }
+  if(e.key==="Escape") closeLib();
+});
+
+/* =========================================================
+   CANVAS SIZING + ANIMATION LOOP
+   ========================================================= */
+let dpr=Math.min(window.devicePixelRatio||1, 2);
+function resizeCanvases(){
+  dpr=Math.min(window.devicePixelRatio||1, 2);
+  cards.forEach(r=>{
+    const w=r.canvas.clientWidth || r.card.clientWidth-28;
+    r.canvas.width=Math.round(w*dpr); r.canvas.height=Math.round(w*dpr);
+    r.ctx.setTransform(dpr,0,0,dpr,0,0);
+    r._size=w;
+  });
+}
+window.addEventListener("resize",()=>{ clearTimeout(window._rz); window._rz=setTimeout(resizeCanvases,120); });
+
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  for(let i=0;i<NDISCS;i++){
+    const d=state.discs[i];
+    if(!d.paused && !state.pausedAll){ d.angle=(d.angle + d.speed*TAU*dt)%TAU; if(d.angle<0)d.angle+=TAU; }
+    const r=cards[i];
+    renderDisc(r.ctx, r._size||r.canvas.clientWidth, d);
+  }
+  requestAnimationFrame(loop);
+}
+
+/* =========================================================
+   GO
+   ========================================================= */
+buildCards();
+syncGlobalControls();
+setActive(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

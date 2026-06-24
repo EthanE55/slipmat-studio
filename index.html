@@ -108,6 +108,7 @@
   .img-bar .iconbtn{width:30px;height:30px}
   .img-bar .iconbtn svg{width:14px;height:14px}
   .img-bar .up.has{background:var(--ink);border-color:var(--ink);color:#fff}
+  [hidden]{display:none !important}
   .slider-row{display:grid;grid-template-columns:42px 1fr 30px;align-items:center;gap:9px}
   .slider-row span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
   .slider-row .val{font-size:10px;color:var(--ink-faint);text-align:right;font-variant-numeric:tabular-nums}
@@ -982,7 +983,7 @@ const LS_KEY = "slipmat.v1";
 const DEFAULT_BOARD = ["bloomcycle","kaleido","peacock","lotus","interference","marble","bounce","pulsestar","flames","vortex","paisley","walk"];
 function defaultDisc(i){
   return { anim: DEFAULT_BOARD[i % DEFAULT_BOARD.length], scale:1, place:0.55, weight:1,
-           blend:"source-over", imgURL:null, _img:null,
+           blend:"source-over", imgURL:null, _img:null, imgScale:1,
            speed: 0.18 + (i%5)*0.08, angle: (i*0.6)%TAU, paused:false };
 }
 const state = {
@@ -1009,8 +1010,8 @@ function imgReady(im){ return !!im && (im.naturalWidth||im.width) > 0 && im.comp
 function drawDiscArt(ctx, R, disc, P, withGrooves){
   const im=disc._img;
   if(imgReady(im)){
-    const d=2*R, iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height, s=Math.max(d/iw,d/ih);
-    ctx.drawImage(im, -iw*s/2, -ih*s/2, iw*s, ih*s);          // cover-fit, clipped to circle
+    const d=2*R*(disc.imgScale||1), iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height, s=Math.max(d/iw,d/ih);
+    ctx.drawImage(im, -iw*s/2, -ih*s/2, iw*s, ih*s);          // cover-fit × Zoom, clipped to circle
   } else if(withGrooves){
     ctx.strokeStyle=P.groove; ctx.lineWidth=Math.max(.5,R*0.006);
     for(let r=R*0.2; r<R*0.98; r+=R*0.05){ ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke(); }
@@ -1072,7 +1073,7 @@ function renderExport(ctx, size, disc){
   ctx.save();
   ctx.translate(cx,cy);
   ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.clip();
-  if(!alphaCut && !hasImg){ ctx.fillStyle=P.bg; ctx.fillRect(-cx,-cy,size,size); }
+  if(!alphaCut){ ctx.fillStyle=P.bg; ctx.fillRect(-cx,-cy,size,size); }   // mat behind a shrunk image
   ctx.rotate(displayAngle(disc, anim));                                 // matches the on-screen frame
   drawDiscArt(ctx, R, disc, P, false);
   ctx.restore();
@@ -1150,7 +1151,7 @@ function buildDiscSVG(disc, size){
   ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
   anim.draw(ctx, R, { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight });
   const deg=fmt(displayAngle(disc,anim)*180/Math.PI);
-  const bg = (mono||hasImg) ? "" : `<circle cx="${cx}" cy="${cy}" r="${fmt(R)}" fill="${P.bg}"/>`;
+  const bg = mono ? "" : `<circle cx="${cx}" cy="${cy}" r="${fmt(R)}" fill="${P.bg}"/>`;
   const imgEl = hasImg
     ? `<g transform="rotate(${deg} ${cx} ${cy})"><image href="${disc.imgURL}" x="${fmt(cx-R)}" y="${fmt(cy-R)}" width="${fmt(2*R)}" height="${fmt(2*R)}" preserveAspectRatio="xMidYMid slice"/></g>`
     : "";
@@ -1192,7 +1193,7 @@ function animOptionsHTML(){
   return html;
 }
 
-const SLIDER_CFG={scale:[0.4,1.8,0.01], place:[0,1,0.01], speed:[SPEED_MIN,SPEED_MAX,0.01], weight:[0.4,2.6,0.02]};
+const SLIDER_CFG={scale:[0.4,1.8,0.01], place:[0,1,0.01], speed:[SPEED_MIN,SPEED_MAX,0.01], weight:[0.4,2.6,0.02], imgScale:[0.2,3,0.02]};
 function sliderRow(k,label){
   const cfg=SLIDER_CFG[k];
   return `<div class="slider-row">
@@ -1243,6 +1244,11 @@ function buildCards(){
         <button class="iconbtn rm" title="Remove image" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
+      </div>
+      <div class="slider-row img-zoom" hidden>
+        <span>Zoom</span>
+        <input type="range" data-k="imgScale" min="0.2" max="3" step="0.02">
+        <span class="val" data-v="imgScale"></span>
       </div>`;
     grid.appendChild(card);
 
@@ -1257,6 +1263,9 @@ function buildCards(){
       up:card.querySelector(".up"),
       blend:card.querySelector(".blend"),
       rm:card.querySelector(".rm"),
+      imgScale:card.querySelector('[data-k="imgScale"]'),
+      imgScaleV:card.querySelector('[data-v="imgScale"]'),
+      imgZoomRow:card.querySelector('.img-zoom'),
       scale:card.querySelector('[data-k="scale"]'),
       place:card.querySelector('[data-k="place"]'),
       weight:card.querySelector('[data-k="weight"]'),
@@ -1285,7 +1294,7 @@ function wireCard(i, r){
   r.blend.addEventListener("change",()=>{ state.discs[i].blend=r.blend.value; });
   r.rm.addEventListener("click",()=>{ const d=state.discs[i]; d.imgURL=null; d._img=null; syncCard(i); });
   const bind=(el,key)=>el.addEventListener("input",()=>{ state.discs[i][key]=parseFloat(el.value); updateSliderVals(i); });
-  bind(r.scale,"scale"); bind(r.place,"place"); bind(r.weight,"weight"); bind(r.speed,"speed");
+  bind(r.scale,"scale"); bind(r.place,"place"); bind(r.weight,"weight"); bind(r.speed,"speed"); bind(r.imgScale,"imgScale");
   r.card.querySelector(".disc-wrap").addEventListener("click",()=>setActive(i));
 }
 function updatePlayBtn(i){
@@ -1298,6 +1307,7 @@ function updateSliderVals(i){
   r.placeV.textContent = d.place.toFixed(2);
   r.weightV.textContent = d.weight.toFixed(1);
   r.speedV.textContent = (d.speed*45).toFixed(0);
+  if(r.imgScaleV) r.imgScaleV.textContent = (d.imgScale||1).toFixed(2);
 }
 function syncCard(i){
   const d=state.discs[i], r=cards[i];
@@ -1307,6 +1317,8 @@ function syncCard(i){
   const hasImg=!!(d.imgURL || d._img);
   r.up.classList.toggle("has", hasImg);
   r.rm.hidden=!hasImg;
+  r.imgScale.value=d.imgScale||1;
+  r.imgZoomRow.hidden=!hasImg;
   updateSliderVals(i); updatePlayBtn(i);
   r.card.classList.toggle("active", state.active===i);
 }
@@ -1342,7 +1354,7 @@ document.getElementById("imgInput").addEventListener("change",e=>{
    ========================================================= */
 function discConfig(i){
   const d=state.discs[i];
-  return {anim:d.anim, scale:d.scale, place:d.place, weight:d.weight, speed:d.speed, angle:d.angle, paused:false, palette:state.palette, blend:d.blend, imgURL:d.imgURL};
+  return {anim:d.anim, scale:d.scale, place:d.place, weight:d.weight, speed:d.speed, angle:d.angle, paused:false, palette:state.palette, blend:d.blend, imgURL:d.imgURL, imgScale:d.imgScale};
 }
 function favKey(f){ return `${f.anim}|${f.scale}|${f.place}|${f.weight}`; }
 function isFav(i){ const k=favKey(state.discs[i]); return store.favs.some(f=>favKey(f)===k); }
@@ -1358,7 +1370,7 @@ function refreshFavBtns(){ for(let i=0;i<NDISCS;i++) cards[i].fav.classList.togg
 function applyConfigToDisc(i, cfg){
   const d=state.discs[i];
   d.anim=cfg.anim; d.scale=cfg.scale; d.place=cfg.place; d.weight=cfg.weight??1; d.speed=cfg.speed;
-  d.blend=cfg.blend||"source-over"; d.imgURL=cfg.imgURL||null; d._img=null;
+  d.blend=cfg.blend||"source-over"; d.imgURL=cfg.imgURL||null; d._img=null; d.imgScale=cfg.imgScale??1;
   if(cfg.palette) state.palette=cfg.palette;
   syncCard(i); syncPaletteSelect(); refreshFavBtns();
 }
@@ -1368,7 +1380,7 @@ function saveBoard(){
   if(!name) return;
   store.boards.unshift({
     name, palette:state.palette, theme:state.theme, strobe:state.strobe,
-    discs: state.discs.map(d=>({anim:d.anim,scale:d.scale,place:d.place,weight:d.weight,speed:d.speed,angle:d.angle,blend:d.blend,imgURL:d.imgURL})),
+    discs: state.discs.map(d=>({anim:d.anim,scale:d.scale,place:d.place,weight:d.weight,speed:d.speed,angle:d.angle,blend:d.blend,imgURL:d.imgURL,imgScale:d.imgScale})),
   });
   const ok=saveStore(); renderBoardList();
   if(ok) flash(document.getElementById("saveBoard"), "Saved ✓");
@@ -1377,7 +1389,7 @@ function saveBoard(){
 function loadBoard(b){
   state.palette=b.palette||"mono"; state.theme=b.theme||"all"; state.strobe=!!b.strobe;
   b.discs.forEach((dc,i)=>{ if(!state.discs[i])return;
-    Object.assign(state.discs[i], {anim:dc.anim,scale:dc.scale,place:dc.place,weight:dc.weight??1,speed:dc.speed,angle:dc.angle||0,paused:false,blend:dc.blend||"source-over",imgURL:dc.imgURL||null,_img:null});
+    Object.assign(state.discs[i], {anim:dc.anim,scale:dc.scale,place:dc.place,weight:dc.weight??1,speed:dc.speed,angle:dc.angle||0,paused:false,blend:dc.blend||"source-over",imgURL:dc.imgURL||null,_img:null,imgScale:dc.imgScale??1});
   });
   syncGlobalControls(); syncAllCards(); closeLib();
 }

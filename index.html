@@ -982,7 +982,7 @@ const LS_KEY = "slipmat.v1";
 
 const DEFAULT_BOARD = ["bloomcycle","kaleido","peacock","lotus","interference","marble","bounce","pulsestar","flames","vortex","paisley","walk"];
 function defaultDisc(i){
-  return { anim: DEFAULT_BOARD[i % DEFAULT_BOARD.length], scale:1, place:0.55, weight:1,
+  return { anim: DEFAULT_BOARD[i % DEFAULT_BOARD.length], scale:1, place:0.55, weight:1, reach:1,
            blend:"source-over", imgURL:null, _img:null, imgScale:1,
            speed: 0.18 + (i%5)*0.08, angle: (i*0.6)%TAU, paused:false };
 }
@@ -1020,7 +1020,7 @@ function drawDiscArt(ctx, R, disc, P, withGrooves){
   ctx.globalCompositeOperation = disc.blend || "source-over";    // Multiply / Add / Difference / …
   ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
   const Pm = { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight };
-  animById(disc.anim).draw(ctx, R, Pm);
+  animById(disc.anim).draw(ctx, R*(disc.reach||1), Pm);          // Reach = how far the motif extends
   ctx.restore();
 }
 function renderDisc(ctx, size, disc, palId){
@@ -1149,7 +1149,7 @@ function buildDiscSVG(disc, size){
   const ctx=makeSVGCtx(mono?P.bg:null);
   ctx.translate(cx,cy); ctx.rotate(displayAngle(disc,anim));
   ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
-  anim.draw(ctx, R, { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight });
+  anim.draw(ctx, R*(disc.reach||1), { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight });
   const deg=fmt(displayAngle(disc,anim)*180/Math.PI);
   const bg = mono ? "" : `<circle cx="${cx}" cy="${cy}" r="${fmt(R)}" fill="${P.bg}"/>`;
   const imgEl = hasImg
@@ -1193,10 +1193,10 @@ function animOptionsHTML(){
   return html;
 }
 
-const SLIDER_CFG={scale:[0.4,1.8,0.01], place:[0,1,0.01], speed:[SPEED_MIN,SPEED_MAX,0.01], weight:[0.4,2.6,0.02], imgScale:[0.2,3,0.02]};
-function sliderRow(k,label){
+const SLIDER_CFG={scale:[0.4,1.8,0.01], place:[0,1,0.01], reach:[0.3,1.5,0.02], speed:[SPEED_MIN,SPEED_MAX,0.01], weight:[0.4,2.6,0.02], imgScale:[0.2,3,0.02]};
+function sliderRow(k,label,title){
   const cfg=SLIDER_CFG[k];
-  return `<div class="slider-row">
+  return `<div class="slider-row"${title?` title="${title}"`:""}>
     <span>${label}</span>
     <input type="range" data-k="${k}" min="${cfg[0]}" max="${cfg[1]}" step="${cfg[2]}">
     <span class="val" data-v="${k}"></span>
@@ -1226,6 +1226,7 @@ function buildCards(){
       <div class="sliders">
         ${sliderRow("scale","Scale")}
         ${sliderRow("place","Place")}
+        ${sliderRow("reach","Reach","How far the design extends toward the rim")}
         ${sliderRow("weight","Line")}
         ${sliderRow("speed","Spin")}
       </div>
@@ -1270,10 +1271,12 @@ function buildCards(){
       place:card.querySelector('[data-k="place"]'),
       weight:card.querySelector('[data-k="weight"]'),
       speed:card.querySelector('[data-k="speed"]'),
+      reach:card.querySelector('[data-k="reach"]'),
       scaleV:card.querySelector('[data-v="scale"]'),
       placeV:card.querySelector('[data-v="place"]'),
       weightV:card.querySelector('[data-v="weight"]'),
       speedV:card.querySelector('[data-v="speed"]'),
+      reachV:card.querySelector('[data-v="reach"]'),
     };
     cards.push(refs);
     wireCard(i, refs);
@@ -1294,7 +1297,7 @@ function wireCard(i, r){
   r.blend.addEventListener("change",()=>{ state.discs[i].blend=r.blend.value; });
   r.rm.addEventListener("click",()=>{ const d=state.discs[i]; d.imgURL=null; d._img=null; syncCard(i); });
   const bind=(el,key)=>el.addEventListener("input",()=>{ state.discs[i][key]=parseFloat(el.value); updateSliderVals(i); });
-  bind(r.scale,"scale"); bind(r.place,"place"); bind(r.weight,"weight"); bind(r.speed,"speed"); bind(r.imgScale,"imgScale");
+  bind(r.scale,"scale"); bind(r.place,"place"); bind(r.reach,"reach"); bind(r.weight,"weight"); bind(r.speed,"speed"); bind(r.imgScale,"imgScale");
   r.card.querySelector(".disc-wrap").addEventListener("click",()=>setActive(i));
 }
 function updatePlayBtn(i){
@@ -1307,11 +1310,13 @@ function updateSliderVals(i){
   r.placeV.textContent = d.place.toFixed(2);
   r.weightV.textContent = d.weight.toFixed(1);
   r.speedV.textContent = (d.speed*45).toFixed(0);
+  r.reachV.textContent = (d.reach||1).toFixed(2);
   if(r.imgScaleV) r.imgScaleV.textContent = (d.imgScale||1).toFixed(2);
 }
 function syncCard(i){
   const d=state.discs[i], r=cards[i];
   r.anim.value=d.anim; r.scale.value=d.scale; r.place.value=d.place; r.weight.value=d.weight; r.speed.value=d.speed;
+  r.reach.value=d.reach||1;
   r.blend.value=d.blend||"source-over";
   if(d.imgURL && !d._img){ const im=new Image(); im.src=d.imgURL; d._img=im; }   // rehydrate after load
   const hasImg=!!(d.imgURL || d._img);
@@ -1354,7 +1359,7 @@ document.getElementById("imgInput").addEventListener("change",e=>{
    ========================================================= */
 function discConfig(i){
   const d=state.discs[i];
-  return {anim:d.anim, scale:d.scale, place:d.place, weight:d.weight, speed:d.speed, angle:d.angle, paused:false, palette:state.palette, blend:d.blend, imgURL:d.imgURL, imgScale:d.imgScale};
+  return {anim:d.anim, scale:d.scale, place:d.place, weight:d.weight, reach:d.reach, speed:d.speed, angle:d.angle, paused:false, palette:state.palette, blend:d.blend, imgURL:d.imgURL, imgScale:d.imgScale};
 }
 function favKey(f){ return `${f.anim}|${f.scale}|${f.place}|${f.weight}`; }
 function isFav(i){ const k=favKey(state.discs[i]); return store.favs.some(f=>favKey(f)===k); }
@@ -1370,7 +1375,7 @@ function refreshFavBtns(){ for(let i=0;i<NDISCS;i++) cards[i].fav.classList.togg
 function applyConfigToDisc(i, cfg){
   const d=state.discs[i];
   d.anim=cfg.anim; d.scale=cfg.scale; d.place=cfg.place; d.weight=cfg.weight??1; d.speed=cfg.speed;
-  d.blend=cfg.blend||"source-over"; d.imgURL=cfg.imgURL||null; d._img=null; d.imgScale=cfg.imgScale??1;
+  d.reach=cfg.reach??1; d.blend=cfg.blend||"source-over"; d.imgURL=cfg.imgURL||null; d._img=null; d.imgScale=cfg.imgScale??1;
   if(cfg.palette) state.palette=cfg.palette;
   syncCard(i); syncPaletteSelect(); refreshFavBtns();
 }
@@ -1380,7 +1385,7 @@ function saveBoard(){
   if(!name) return;
   store.boards.unshift({
     name, palette:state.palette, theme:state.theme, strobe:state.strobe,
-    discs: state.discs.map(d=>({anim:d.anim,scale:d.scale,place:d.place,weight:d.weight,speed:d.speed,angle:d.angle,blend:d.blend,imgURL:d.imgURL,imgScale:d.imgScale})),
+    discs: state.discs.map(d=>({anim:d.anim,scale:d.scale,place:d.place,weight:d.weight,reach:d.reach,speed:d.speed,angle:d.angle,blend:d.blend,imgURL:d.imgURL,imgScale:d.imgScale})),
   });
   const ok=saveStore(); renderBoardList();
   if(ok) flash(document.getElementById("saveBoard"), "Saved ✓");
@@ -1389,7 +1394,7 @@ function saveBoard(){
 function loadBoard(b){
   state.palette=b.palette||"mono"; state.theme=b.theme||"all"; state.strobe=!!b.strobe;
   b.discs.forEach((dc,i)=>{ if(!state.discs[i])return;
-    Object.assign(state.discs[i], {anim:dc.anim,scale:dc.scale,place:dc.place,weight:dc.weight??1,speed:dc.speed,angle:dc.angle||0,paused:false,blend:dc.blend||"source-over",imgURL:dc.imgURL||null,_img:null,imgScale:dc.imgScale??1});
+    Object.assign(state.discs[i], {anim:dc.anim,scale:dc.scale,place:dc.place,weight:dc.weight??1,reach:dc.reach??1,speed:dc.speed,angle:dc.angle||0,paused:false,blend:dc.blend||"source-over",imgURL:dc.imgURL||null,_img:null,imgScale:dc.imgScale??1});
   });
   syncGlobalControls(); syncAllCards(); closeLib();
 }

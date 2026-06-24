@@ -103,6 +103,11 @@
   .iconbtn svg{width:15px;height:15px}
   .iconbtn.fav.on{background:var(--ink);border-color:var(--ink);color:#fff}
   .sliders{display:flex;flex-direction:column;gap:7px}
+  .img-bar{display:flex;align-items:center;gap:6px}
+  .img-bar select{flex:1;min-width:0;padding:6px 22px 6px 8px;font-size:10.5px}
+  .img-bar .iconbtn{width:30px;height:30px}
+  .img-bar .iconbtn svg{width:14px;height:14px}
+  .img-bar .up.has{background:var(--ink);border-color:var(--ink);color:#fff}
   .slider-row{display:grid;grid-template-columns:42px 1fr 30px;align-items:center;gap:9px}
   .slider-row span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
   .slider-row .val{font-size:10px;color:var(--ink-faint);text-align:right;font-variant-numeric:tabular-nums}
@@ -187,6 +192,7 @@
     Tune <b>Scale</b>, <b>Place</b>, <b>Spin</b> &amp; <b>Line</b> per mat · click a disc to select it · <kbd>Space</kbd> pauses all.
   </p>
   <div class="grid" id="grid"></div>
+  <input type="file" id="imgInput" accept="image/*" style="display:none" />
 </main>
 
 <!-- Library modal -->
@@ -375,6 +381,22 @@ function drawFish(ctx,s,phase,P,idx){
   ctx.restore();
   ctx.fillStyle=P.bg; ctx.beginPath(); ctx.arc(s*0.28,0,s*0.07,0,TAU); ctx.fill();   // eye
   ctx.restore();
+}
+// 5/N-point star centred at origin
+function starShape(ctx, points, ro, ri, rot, col){
+  ctx.fillStyle=col; ctx.beginPath();
+  for(let k=0;k<points*2;k++){ const r=k%2?ri:ro, a=rot + k/(points*2)*TAU - Math.PI/2;
+    const x=Math.cos(a)*r, y=Math.sin(a)*r; k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.closePath(); ctx.fill();
+}
+// flower whose openness (0..1) drives petal length — used for the bloom frame-cycle
+function drawFlower(ctx, s, open, P, idx){
+  const petals=6, len=s*(0.35+0.95*open), wdt=s*0.24*(0.55+0.45*open);
+  ctx.fillStyle=tone(P, idx);
+  for(let p=0;p<petals;p++){ ctx.save(); ctx.rotate(p/petals*TAU);
+    ctx.beginPath(); ctx.ellipse(0,-len*0.55, wdt, len*0.55, 0,0,TAU); ctx.fill(); ctx.restore(); }
+  ctx.fillStyle = isMulti(P)?tone(P,idx+3):(isTwoTone(P)?P.accent:P.bg);
+  ctx.beginPath(); ctx.arc(0,0, s*0.18, 0, TAU); ctx.fill();
 }
 
 /* =========================================================
@@ -842,6 +864,111 @@ const ANIMS = [
         ctx.restore();
       }
     } },
+
+  /* ---- ZOETROPE FRAME-CYCLES (animate in place under Strobe) ---- */
+  { id:"bloomcycle", name:"Bloom Cycle", theme:"psychedelic", frames:10,
+    draw(ctx,R,P){
+      const K=10, ringR=R*(0.4+0.5*P.place), fs=R*0.16*P.scale;
+      for(let i=0;i<K;i++){ ctx.save(); ctx.rotate(i/K*TAU); ctx.translate(0,-ringR);
+        drawFlower(ctx, fs, i/K, P, i); ctx.restore(); }
+    } },
+
+  { id:"bounce", name:"Bounce", theme:"patterns", frames:12,
+    draw(ctx,R,P){
+      const K=12, ringR=R*(0.4+0.5*P.place), cell=R*0.15*P.scale;
+      for(let i=0;i<K;i++){
+        const p=i/K, h=Math.abs(Math.sin(p*Math.PI)), squash=0.6+0.4*h, by=cell*0.9 - h*cell*1.8;
+        ctx.save(); ctx.rotate(i/K*TAU); ctx.translate(0,-ringR);
+        ctx.fillStyle=tone(P,i);
+        ctx.save(); ctx.translate(0,by); ctx.scale(1/Math.sqrt(squash), squash);
+        ctx.beginPath(); ctx.arc(0,0,cell*0.42,0,TAU); ctx.fill(); ctx.restore();
+        ctx.restore();
+      }
+    } },
+
+  { id:"pulsestar", name:"Pulse Star", theme:"geometry", frames:10,
+    draw(ctx,R,P){
+      const K=10, ringR=R*(0.4+0.5*P.place), base=R*0.13*P.scale;
+      for(let i=0;i<K;i++){ const p=i/K, sz=base*(0.55+0.55*(0.5+0.5*Math.sin(p*TAU)));
+        ctx.save(); ctx.rotate(i/K*TAU); ctx.translate(0,-ringR);
+        starShape(ctx, 5, sz, sz*0.45, p*TAU*0.5, tone(P,i)); ctx.restore(); }
+    } },
+
+  /* ---- PATTERNS (op / kaleidoscopic) ---- */
+  { id:"kaleido", name:"Kaleidoscope", theme:"geometry", frames:12,
+    draw(ctx,R,P){
+      const seg=2*Math.round(3+P.place*5), w=wOf(P), half=Math.PI/seg;
+      for(let s=0;s<seg;s++){
+        ctx.save(); ctx.rotate((s+0.5)/seg*TAU); if(s%2) ctx.scale(-1,1);
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R*0.99, -Math.PI/2-half, -Math.PI/2+half); ctx.closePath(); ctx.clip();
+        ctx.fillStyle=tone(P,s);   ctx.beginPath(); ctx.arc(0,-R*0.72, R*0.17,0,TAU); ctx.fill();
+        ctx.fillStyle=tone(P,s+2); ctx.beginPath(); ctx.arc(0,-R*0.44, R*0.11,0,TAU); ctx.fill();
+        ctx.fillStyle=tone(P,s+4); ctx.beginPath(); ctx.arc(R*0.14,-R*0.6, R*0.07,0,TAU); ctx.fill();
+        ctx.strokeStyle=tone(P,s+1); ctx.lineWidth=R*0.035*w; ctx.beginPath(); ctx.moveTo(0,-R*0.12); ctx.lineTo(0,-R*0.96); ctx.stroke();
+        ctx.restore();
+      }
+    } },
+
+  { id:"interference", name:"Interference", theme:"patterns", frames:36,
+    draw(ctx,R,P){
+      const turns=5+P.scale*7, arms=1+Math.round(P.place*2), spacing=(R*0.9)/turns, w=wOf(P);
+      ctx.lineCap="round"; ctx.lineWidth=Math.min(spacing*0.5, spacing*0.3*w);
+      const spiral=(sign,col)=>{ ctx.strokeStyle=col;
+        for(let a=0;a<arms;a++){ ctx.beginPath(); const steps=Math.ceil(turns*64);
+          for(let i=0;i<=steps;i++){ const f=i/steps, ang=sign*f*TAU*turns + a/arms*TAU, r=R*0.06+f*R*0.9;
+            i?ctx.lineTo(Math.cos(ang)*r,Math.sin(ang)*r):ctx.moveTo(Math.cos(ang)*r,Math.sin(ang)*r); }
+          ctx.stroke(); } };
+      spiral(1, tone(P,0));
+      spiral(-1, isMulti(P)?tone(P,2):(isTwoTone(P)?P.accent:P.ink));
+    } },
+
+  /* ---- ORGANIC (geometric-meets-organic) ---- */
+  { id:"peacock", name:"Peacock", theme:"organic", frames:8,
+    draw(ctx,R,P){
+      const n=Math.round(7+P.place*7), w=wOf(P), eyeR=R*0.17*P.scale;
+      for(let i=0;i<n;i++){
+        ctx.save(); ctx.rotate(i/n*TAU);
+        ctx.strokeStyle=tone(P,i+1); ctx.lineWidth=R*0.014*w; ctx.lineCap="round";
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(eyeR*0.5,-R*0.42, 0,-R*0.76); ctx.stroke();
+        const ey=-R*0.76, layers=[[eyeR,tone(P,i)],[eyeR*0.62,tone(P,i+2)],[eyeR*0.3,tone(P,i+4)]];
+        for(const L of layers){ ctx.fillStyle=L[1]; ctx.beginPath(); ctx.ellipse(0,ey, L[0]*0.78, L[0], 0,0,TAU); ctx.fill(); }
+        ctx.restore();
+      }
+    } },
+
+  { id:"lotus", name:"Lotus", theme:"organic", frames:12,
+    draw(ctx,R,P){
+      const tiers=Math.round(2+P.scale*3), petals=Math.round(6+P.place*8);
+      for(let t=0;t<tiers;t++){
+        const tr=R*(0.96-t*0.22), off=(t%2)*(Math.PI/petals);
+        ctx.fillStyle=tone(P,t);
+        for(let p=0;p<petals;p++){
+          ctx.save(); ctx.rotate(p/petals*TAU + off);
+          ctx.beginPath(); ctx.moveTo(0,-tr*0.26);
+          ctx.quadraticCurveTo(tr*0.17,-tr*0.7, 0,-tr);
+          ctx.quadraticCurveTo(-tr*0.17,-tr*0.7, 0,-tr*0.26);
+          ctx.closePath(); ctx.fill(); ctx.restore();
+        }
+      }
+      ctx.fillStyle=isMulti(P)?tone(P,0):(isTwoTone(P)?P.accent:P.bg);
+      ctx.beginPath(); ctx.arc(0,0,R*0.09,0,TAU); ctx.fill();
+    } },
+
+  { id:"marble", name:"Marble Veins", theme:"organic", frames:3,
+    draw(ctx,R,P){
+      const veins=Math.round(7+P.scale*8), w=wOf(P);
+      ctx.lineCap="round";
+      for(let i=0;i<veins;i++){
+        const startA=hash(i)*TAU, startR=hash(i+1)*R*0.45, swirl=(hash(i+2)-0.5)*4.5, len=0.5+hash(i+3)*0.5;
+        ctx.strokeStyle=tone(P,i); ctx.lineWidth=(R*0.015+R*0.045*hash(i+4))*w;
+        ctx.beginPath(); const steps=54;
+        for(let j=0;j<=steps;j++){
+          const f=j/steps, a=startA + swirl*f + 0.35*Math.sin(f*7+i), r=startR + f*R*0.55*len + R*0.08*Math.sin(f*5+i*1.3);
+          const x=Math.cos(a)*r, y=Math.sin(a)*r; j?ctx.lineTo(x,y):ctx.moveTo(x,y);
+        }
+        ctx.stroke();
+      }
+    } },
 ];
 const animById = id => ANIMS.find(a=>a.id===id) || ANIMS[0];
 
@@ -852,9 +979,10 @@ const NDISCS = 12;
 const SPEED_MIN=-1.2, SPEED_MAX=1.2;
 const LS_KEY = "slipmat.v1";
 
-const DEFAULT_BOARD = ["paisley","liquid","smoke","blobs","serpent","tentacles","flames","mandala","vortex","eye","star-spiral","walk"];
+const DEFAULT_BOARD = ["bloomcycle","kaleido","peacock","lotus","interference","marble","bounce","pulsestar","flames","vortex","paisley","walk"];
 function defaultDisc(i){
   return { anim: DEFAULT_BOARD[i % DEFAULT_BOARD.length], scale:1, place:0.55, weight:1,
+           blend:"source-over", imgURL:null, _img:null,
            speed: 0.18 + (i%5)*0.08, angle: (i*0.6)%TAU, paused:false };
 }
 const state = {
@@ -864,7 +992,7 @@ const state = {
 let store = { boards:[], favs:[] };
 
 function loadStore(){ try{ const r=localStorage.getItem(LS_KEY); if(r) store=JSON.parse(r); }catch(e){} }
-function saveStore(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); }catch(e){} }
+function saveStore(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); return true; }catch(e){ return false; } }
 loadStore();
 
 /* =========================================================
@@ -874,6 +1002,25 @@ function displayAngle(disc, anim){
   if(!state.strobe) return disc.angle;
   const step = TAU/Math.max(1, anim.frames);
   return Math.round(disc.angle/step)*step;
+}
+function imgReady(im){ return !!im && (im.naturalWidth||im.width) > 0 && im.complete !== false; }
+// draws (uploaded image OR grooves) then the built-in motif on top with the disc's blend mode.
+// ctx must already be centred, rotated and clipped to the disc.
+function drawDiscArt(ctx, R, disc, P, withGrooves){
+  const im=disc._img;
+  if(imgReady(im)){
+    const d=2*R, iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height, s=Math.max(d/iw,d/ih);
+    ctx.drawImage(im, -iw*s/2, -ih*s/2, iw*s, ih*s);          // cover-fit, clipped to circle
+  } else if(withGrooves){
+    ctx.strokeStyle=P.groove; ctx.lineWidth=Math.max(.5,R*0.006);
+    for(let r=R*0.2; r<R*0.98; r+=R*0.05){ ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke(); }
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = disc.blend || "source-over";    // Multiply / Add / Difference / …
+  ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
+  const Pm = { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight };
+  animById(disc.anim).draw(ctx, R, Pm);
+  ctx.restore();
 }
 function renderDisc(ctx, size, disc, palId){
   const P = paletteById(palId || state.palette);
@@ -893,11 +1040,7 @@ function renderDisc(ctx, size, disc, palId){
 
   ctx.save();
   ctx.beginPath(); ctx.arc(0,0,R*0.995,0,TAU); ctx.clip();
-  ctx.strokeStyle=P.groove; ctx.lineWidth=Math.max(.5,R*0.006);
-  for(let r=R*0.2; r<R*0.98; r+=R*0.05){ ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke(); }
-  ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
-  const Pm = { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight };
-  anim.draw(ctx, R, Pm);
+  drawDiscArt(ctx, R, disc, P, true);
   ctx.restore();
   ctx.restore(); // un-rotate
 
@@ -922,17 +1065,16 @@ function renderExport(ctx, size, disc){
   const P = paletteById(state.palette);
   const anim = animById(disc.anim);
   const cx=size/2, cy=size/2, R=size*0.5*0.98;
-  const alphaCut = (state.palette === "mono");
+  const hasImg = imgReady(disc._img);
+  const alphaCut = (state.palette === "mono") && !hasImg;   // an uploaded image → export the composite, not a cutout
   ctx.clearRect(0,0,size,size);
   if(alphaCut){ ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,size,size); }  // paint white, convert later
   ctx.save();
   ctx.translate(cx,cy);
   ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.clip();
-  if(!alphaCut){ ctx.fillStyle=P.bg; ctx.fillRect(-cx,-cy,size,size); }
+  if(!alphaCut && !hasImg){ ctx.fillStyle=P.bg; ctx.fillRect(-cx,-cy,size,size); }
   ctx.rotate(displayAngle(disc, anim));                                 // matches the on-screen frame
-  ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
-  const Pm = { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight };
-  anim.draw(ctx, R, Pm);
+  drawDiscArt(ctx, R, disc, P, false);
   ctx.restore();
   if(alphaCut){
     const img=ctx.getImageData(0,0,size,size), d=img.data;
@@ -945,6 +1087,8 @@ function renderExport(ctx, size, disc){
 }
 const exportCfg = { format:"png", size:2000 };
 const fmt = n => Math.round(n*1000)/1000;
+// canvas composite op → CSS mix-blend-mode (SVG has no additive, so 'lighter'→'screen')
+const SVG_BLEND = { "source-over":"normal", "multiply":"multiply", "lighter":"screen", "difference":"difference", "screen":"screen", "overlay":"overlay" };
 
 /* Minimal canvas→SVG adapter. Transforms in the designs are rigid (translate+
    rotate only, no scale), so we bake every point through the CTM into absolute
@@ -998,15 +1142,23 @@ function makeSVGCtx(skipColor){
 }
 function buildDiscSVG(disc, size){
   const P=paletteById(state.palette), anim=animById(disc.anim);
-  const R=size*0.5*0.98, cx=size/2, cy=size/2, mono=state.palette==="mono";
+  const R=size*0.5*0.98, cx=size/2, cy=size/2;
+  const hasImg=!!disc.imgURL;
+  const mono=(state.palette==="mono") && !hasImg;
   const ctx=makeSVGCtx(mono?P.bg:null);
   ctx.translate(cx,cy); ctx.rotate(displayAngle(disc,anim));
   ctx.fillStyle=P.ink; ctx.strokeStyle=P.ink;
   anim.draw(ctx, R, { bg:P.bg, ink:P.ink, accent:P.accent, colors:P.colors, scale:disc.scale, place:disc.place, weight:disc.weight });
-  const bg = mono ? "" : `<circle cx="${cx}" cy="${cy}" r="${fmt(R)}" fill="${P.bg}"/>`;
+  const deg=fmt(displayAngle(disc,anim)*180/Math.PI);
+  const bg = (mono||hasImg) ? "" : `<circle cx="${cx}" cy="${cy}" r="${fmt(R)}" fill="${P.bg}"/>`;
+  const imgEl = hasImg
+    ? `<g transform="rotate(${deg} ${cx} ${cy})"><image href="${disc.imgURL}" x="${fmt(cx-R)}" y="${fmt(cy-R)}" width="${fmt(2*R)}" height="${fmt(2*R)}" preserveAspectRatio="xMidYMid slice"/></g>`
+    : "";
+  const blend = SVG_BLEND[disc.blend] || "normal";
+  const motif = blend==="normal" ? ctx.svg() : `<g style="mix-blend-mode:${blend}">${ctx.svg()}</g>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`+
          `<defs><clipPath id="disc"><circle cx="${cx}" cy="${cy}" r="${fmt(R)}"/></clipPath></defs>`+
-         `<g clip-path="url(#disc)">${bg}${ctx.svg()}</g></svg>`;
+         `<g clip-path="url(#disc)">${bg}${imgEl}${motif}</g></svg>`;
 }
 function triggerDownload(href, name){ const a=document.createElement("a"); a.href=href; a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
 function downloadDisc(i){
@@ -1075,6 +1227,22 @@ function buildCards(){
         ${sliderRow("place","Place")}
         ${sliderRow("weight","Line")}
         ${sliderRow("speed","Spin")}
+      </div>
+      <div class="img-bar">
+        <button class="iconbtn up" title="Upload an image to spin on this disc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>
+        </button>
+        <select class="blend" title="How the built-in design blends over your image">
+          <option value="source-over">Normal</option>
+          <option value="multiply">Multiply</option>
+          <option value="lighter">Add</option>
+          <option value="difference">Difference</option>
+          <option value="screen">Screen</option>
+          <option value="overlay">Overlay</option>
+        </select>
+        <button class="iconbtn rm" title="Remove image" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>`;
     grid.appendChild(card);
 
@@ -1086,6 +1254,9 @@ function buildCards(){
       play:card.querySelector(".play"),
       fav:card.querySelector(".fav"),
       dl:card.querySelector(".dl"),
+      up:card.querySelector(".up"),
+      blend:card.querySelector(".blend"),
+      rm:card.querySelector(".rm"),
       scale:card.querySelector('[data-k="scale"]'),
       place:card.querySelector('[data-k="place"]'),
       weight:card.querySelector('[data-k="weight"]'),
@@ -1110,6 +1281,9 @@ function wireCard(i, r){
   r.play.addEventListener("click",()=>{ state.discs[i].paused=!state.discs[i].paused; updatePlayBtn(i); });
   r.fav.addEventListener("click",()=>{ toggleFav(i); });
   r.dl.addEventListener("click",()=>{ downloadDisc(i); });
+  r.up.addEventListener("click",()=>{ state._uploadTarget=i; const inp=document.getElementById("imgInput"); inp.value=""; inp.click(); });
+  r.blend.addEventListener("change",()=>{ state.discs[i].blend=r.blend.value; });
+  r.rm.addEventListener("click",()=>{ const d=state.discs[i]; d.imgURL=null; d._img=null; syncCard(i); });
   const bind=(el,key)=>el.addEventListener("input",()=>{ state.discs[i][key]=parseFloat(el.value); updateSliderVals(i); });
   bind(r.scale,"scale"); bind(r.place,"place"); bind(r.weight,"weight"); bind(r.speed,"speed");
   r.card.querySelector(".disc-wrap").addEventListener("click",()=>setActive(i));
@@ -1128,18 +1302,47 @@ function updateSliderVals(i){
 function syncCard(i){
   const d=state.discs[i], r=cards[i];
   r.anim.value=d.anim; r.scale.value=d.scale; r.place.value=d.place; r.weight.value=d.weight; r.speed.value=d.speed;
+  r.blend.value=d.blend||"source-over";
+  if(d.imgURL && !d._img){ const im=new Image(); im.src=d.imgURL; d._img=im; }   // rehydrate after load
+  const hasImg=!!(d.imgURL || d._img);
+  r.up.classList.toggle("has", hasImg);
+  r.rm.hidden=!hasImg;
   updateSliderVals(i); updatePlayBtn(i);
   r.card.classList.toggle("active", state.active===i);
 }
 function syncAllCards(){ for(let i=0;i<NDISCS;i++) syncCard(i); refreshFavBtns(); }
 function setActive(i){ state.active=i; cards.forEach((c,idx)=>c.card.classList.toggle("active",idx===i)); }
 
+/* upload an image onto a disc (downscaled so it stays light) */
+function loadImageToDisc(i, file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1100, sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+      const cw=Math.max(1,Math.round(img.naturalWidth*sc)), ch=Math.max(1,Math.round(img.naturalHeight*sc));
+      const cnv=document.createElement("canvas"); cnv.width=cw; cnv.height=ch;
+      cnv.getContext("2d").drawImage(img,0,0,cw,ch);
+      let url=null; try{ url=cnv.toDataURL("image/png"); }catch(e){}
+      const d=state.discs[i]; d.imgURL=url; d._img=cnv; setActive(i); syncCard(i);
+    };
+    img.onerror=()=>alert("Sorry — that image couldn't be loaded.");
+    img.src=reader.result;
+  };
+  reader.onerror=()=>alert("Sorry — that file couldn't be read.");
+  reader.readAsDataURL(file);
+}
+document.getElementById("imgInput").addEventListener("change",e=>{
+  const f=e.target.files && e.target.files[0];
+  if(f && state._uploadTarget!=null) loadImageToDisc(state._uploadTarget, f);
+});
+
 /* =========================================================
    FAVOURITES / BOARDS
    ========================================================= */
 function discConfig(i){
   const d=state.discs[i];
-  return {anim:d.anim, scale:d.scale, place:d.place, weight:d.weight, speed:d.speed, angle:d.angle, paused:false, palette:state.palette};
+  return {anim:d.anim, scale:d.scale, place:d.place, weight:d.weight, speed:d.speed, angle:d.angle, paused:false, palette:state.palette, blend:d.blend, imgURL:d.imgURL};
 }
 function favKey(f){ return `${f.anim}|${f.scale}|${f.place}|${f.weight}`; }
 function isFav(i){ const k=favKey(state.discs[i]); return store.favs.some(f=>favKey(f)===k); }
@@ -1155,6 +1358,7 @@ function refreshFavBtns(){ for(let i=0;i<NDISCS;i++) cards[i].fav.classList.togg
 function applyConfigToDisc(i, cfg){
   const d=state.discs[i];
   d.anim=cfg.anim; d.scale=cfg.scale; d.place=cfg.place; d.weight=cfg.weight??1; d.speed=cfg.speed;
+  d.blend=cfg.blend||"source-over"; d.imgURL=cfg.imgURL||null; d._img=null;
   if(cfg.palette) state.palette=cfg.palette;
   syncCard(i); syncPaletteSelect(); refreshFavBtns();
 }
@@ -1164,15 +1368,16 @@ function saveBoard(){
   if(!name) return;
   store.boards.unshift({
     name, palette:state.palette, theme:state.theme, strobe:state.strobe,
-    discs: state.discs.map(d=>({anim:d.anim,scale:d.scale,place:d.place,weight:d.weight,speed:d.speed,angle:d.angle})),
+    discs: state.discs.map(d=>({anim:d.anim,scale:d.scale,place:d.place,weight:d.weight,speed:d.speed,angle:d.angle,blend:d.blend,imgURL:d.imgURL})),
   });
-  saveStore(); renderBoardList();
-  flash(document.getElementById("saveBoard"), "Saved ✓");
+  const ok=saveStore(); renderBoardList();
+  if(ok) flash(document.getElementById("saveBoard"), "Saved ✓");
+  else alert("Saved for this session, but it was too large to store permanently (uploaded images). Export a .json backup or use fewer/smaller images.");
 }
 function loadBoard(b){
   state.palette=b.palette||"mono"; state.theme=b.theme||"all"; state.strobe=!!b.strobe;
   b.discs.forEach((dc,i)=>{ if(!state.discs[i])return;
-    Object.assign(state.discs[i], {anim:dc.anim,scale:dc.scale,place:dc.place,weight:dc.weight??1,speed:dc.speed,angle:dc.angle||0,paused:false});
+    Object.assign(state.discs[i], {anim:dc.anim,scale:dc.scale,place:dc.place,weight:dc.weight??1,speed:dc.speed,angle:dc.angle||0,paused:false,blend:dc.blend||"source-over",imgURL:dc.imgURL||null,_img:null});
   });
   syncGlobalControls(); syncAllCards(); closeLib();
 }
